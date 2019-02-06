@@ -1,11 +1,15 @@
-package com.cml.idex.util;
+package com.cml.idex.sig;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
+
+import org.web3j.utils.Numeric;
+
+import com.cml.idex.util.IdexCrypto;
 
 public class OrderSigParms implements SigParms {
+
    final String     contractAddress;
    final String     tokenBuy;
    final BigInteger amountBuy;
@@ -64,15 +68,15 @@ public class OrderSigParms implements SigParms {
 
    @Override
    public byte[] encode() throws IOException {
-      ByteArrayOutputStream ba = new ByteArrayOutputStream();
-      ba.write(contractAddress.substring(2).getBytes(StandardCharsets.UTF_8));
-      ba.write(tokenBuy.substring(2).getBytes(StandardCharsets.UTF_8));
-      ba.write(amountBuy.toByteArray());
-      ba.write(tokenSell.substring(2).getBytes(StandardCharsets.UTF_8));
-      ba.write(amountSell.toByteArray());
-      ba.write(BigInteger.valueOf(expires).toByteArray());
-      ba.write(BigInteger.valueOf(nonce).toByteArray());
-      ba.write(address.substring(2).getBytes(StandardCharsets.UTF_8));
+      ByteArrayOutputStream ba = new ByteArrayOutputStream(256);
+      ba.write(Numeric.hexStringToByteArray(contractAddress));
+      ba.write(Numeric.hexStringToByteArray(tokenBuy));
+      ba.write(IdexCrypto.encodeNumeric(amountBuy));
+      ba.write(Numeric.hexStringToByteArray(tokenSell));
+      ba.write(IdexCrypto.encodeNumeric(amountSell));
+      ba.write(IdexCrypto.encodeNumeric(expires));
+      ba.write(IdexCrypto.encodeNumeric(nonce));
+      ba.write(Numeric.hexStringToByteArray(address));
       return ba.toByteArray();
    }
 }

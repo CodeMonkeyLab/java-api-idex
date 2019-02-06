@@ -3,17 +3,20 @@ package com.cml.idex;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.Dsl;
+import org.asynchttpclient.Request;
+import org.asynchttpclient.RequestBuilder;
+import org.asynchttpclient.Response;
+import org.asynchttpclient.util.HttpConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.Sign.SignatureData;
 
@@ -29,68 +32,45 @@ import com.cml.idex.packets.ReturnCurrencies;
 import com.cml.idex.packets.ReturnDepositsWithdrawals;
 import com.cml.idex.packets.ReturnNextNonce;
 import com.cml.idex.packets.ReturnOpenOrders;
+import com.cml.idex.packets.ReturnOrderBook;
+import com.cml.idex.packets.ReturnOrderStatus;
+import com.cml.idex.packets.ReturnOrderTrades;
 import com.cml.idex.packets.ReturnTicker;
-import com.cml.idex.util.CancelSigParms;
+import com.cml.idex.packets.ReturnTradeHistory;
+import com.cml.idex.packets.Withdraw;
+import com.cml.idex.sig.CancelSigParms;
+import com.cml.idex.sig.OrderSigParms;
+import com.cml.idex.sig.WithdrawSigParms;
 import com.cml.idex.util.IdexCrypto;
-import com.cml.idex.util.OrderSigParms;
+import com.cml.idex.util.Utils;
 import com.cml.idex.value.BalanceOrder;
 import com.cml.idex.value.Currency;
 import com.cml.idex.value.DepositsWithdrawals;
 import com.cml.idex.value.Order;
+import com.cml.idex.value.OrderBook;
+import com.cml.idex.value.OrderTrade;
 import com.cml.idex.value.Outcome;
 import com.cml.idex.value.Ticker;
+import com.cml.idex.value.TradeHistory;
 import com.cml.idex.value.Volume;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class IDexAPI {
 
-   private String              version         = "v1";
-   private static final String HTTP_ENDPOINT   = "https://api.idex.market/";
-   private static final String WS_ENDPOINT     = "wss://v1.idex.market";
-   private static final String CONTENT_TYPE    = "application/json";
+   private static final Logger   log             = LoggerFactory.getLogger(IDexAPI.class);
 
-   private final HttpClient    client          = HttpClient.newHttpClient();
-   private final ObjectMapper  mapper          = new ObjectMapper();
+   private String                version         = "v1";
+   private static final String   HTTP_ENDPOINT   = "https://api.idex.market/";
+   private static final String   WS_ENDPOINT     = "wss://v1.idex.market";
+   private static final String   CONTENT_TYPE    = "application/json";
 
-   public final String         DEFAULT_ETH_ADR = "0x0000000000000000000000000000000000000000";
+   private final AsyncHttpClient client          = Dsl.asyncHttpClient();
+   private final ObjectMapper    mapper          = new ObjectMapper();
 
-   public static void main(String[] args) {
-
-      final String address = "0xBa0af722A67B15eB6d66ac3341A94B4f3A863107";
-
-      IDexAPI iDexAPI = new IDexAPI();
-      // System.out.println(iDexAPI.returnTicker("ETH_AURA").join().toString());
-      //
-      // iDexAPI.returnCurrencies().join().entrySet()
-      // .forEach(entry -> System.out.println(entry.getKey() + " : " +
-      // entry.getValue()));
-
-      // Volume volume = iDexAPI.return24Volume().join();
-      // volume.getVolumePairs().entrySet().stream()
-      // .forEach(entry -> System.out.println(entry.getKey() + " : " +
-      // entry.getValue()));
-      // volume.getTotalVolumes().entrySet().stream()
-      // .forEach(entry -> System.out.println(entry.getKey() + " : " +
-      // entry.getValue()));
-
-      // System.out.println(iDexAPI.returnBalances("0xBa0af722A67B15eB6d66ac3341A94B4f3A863107").join());
-      //
-      // iDexAPI.returnCompleteBalances("0xBa0af722A67B15eB6d66ac3341A94B4f3A863107").join().entrySet().stream()
-      // .forEach(entry -> System.out.println(entry.getKey() + " : " +
-      // entry.getValue()));
-
-      // DepositsWithdrawals depWith =
-      // iDexAPI.returnDepositsWithdrawals(address, null, null).join();
-      //
-      // System.out.println("Deposists");
-      // depWith.getDeposits().forEach(System.out::println);
-      // depWith.getWithdrawals().forEach(System.out::println);
-
-      List<Order> orders = iDexAPI.returnOpenOrders(null, address, null, null).join();
-      orders.forEach(System.out::println);
-   }
+   public static final String    DEFAULT_ETH_ADR = "0x0000000000000000000000000000000000000000";
 
    /**
+    * Places a limit order on IDEX.
     * 
     * @param tokenBuy
     *           The address of the token you will receive as a result of the
@@ -121,38 +101,94 @@ public class IDexAPI {
     */
    public CompletableFuture<Order> order(
          final String tokenBuy, final BigInteger amountBuy, final String tokenSell, final BigInteger amountSell,
-         final String address, final long nonce, final long expires, final byte v, final byte[] r, final byte[] s) {
-
-         // Contact Address : returnContractAddress()
-         // nonce : returnNextNonce()
-         return process(
-               PlaceOrder.create(tokenBuy, amountBuy, tokenSell, amountSell, address, nonce, expires, v, r, s));
+         final String address, final long nonce, final long expires, final byte v, final byte[] r, final byte[] s
+   ) {
+      return process(PlaceOrder.create(tokenBuy, amountBuy, tokenSell, amountSell, address, nonce, expires, v, r, s));
    }
 
+   /**
+    * Places a limit order on IDEX.
+    * 
+    * @param credentials
+    *           Wallet credentials
+    * @param contractAdress
+    *           The contract address used for depositing, withdrawing, and
+    *           posting orders. Can get from returnContractAddress
+    * @param nonce
+    *           One time numeric value associated with your address. Can get
+    *           from returnNextNonce.
+    * @param tokenBuy
+    *           The address of the token you will receive as a result of the
+    *           trade.
+    * @param amountBuy
+    *           The amount of the token you will receive when the order is fully
+    *           filled.
+    * @param tokenSell
+    *           The address of the token you will lose as a result of the trade
+    * @param amountSell
+    *           The amount of the token you will give up when the order is fully
+    *           filled
+    * @param expires
+    *           DEPRECATED this property has no effect on your limit order but
+    *           is still REQUIRED to submit a limit order as it is one of the
+    *           parameters that is hashed
+    * @return Future
+    */
+   public CompletableFuture<Order> order(
+         Credentials credentials, final String contractAdress, final long nonce, final String tokenBuy,
+         final BigInteger amountBuy, final String tokenSell, final BigInteger amountSell, final Long expires
+   ) {
+      final SignatureData sigData;
+      try {
+         sigData = IdexCrypto.createParamsSig(new OrderSigParms(contractAdress, tokenBuy, amountBuy, tokenSell,
+               amountSell, expires, nonce, credentials.getAddress()), credentials);
+      } catch (IOException e) {
+         throw new RuntimeException(e);
+      }
+      return order(tokenBuy, amountBuy, tokenSell, amountSell, credentials.getAddress(), nonce, expires, sigData.getV(),
+            sigData.getR(), sigData.getS());
+   }
+
+   /**
+    * Places a limit order on IDEX.
+    * 
+    * @param credentials
+    *           Wallet credentials
+    * @param tokenBuy
+    *           The address of the token you will receive as a result of the
+    *           trade.
+    * @param amountBuy
+    *           The amount of the token you will receive when the order is fully
+    *           filled.
+    * @param tokenSell
+    *           The address of the token you will lose as a result of the trade
+    * @param amountSell
+    *           The amount of the token you will give up when the order is fully
+    *           filled
+    * @param expires
+    *           DEPRECATED this property has no effect on your limit order but
+    *           is still REQUIRED to submit a limit order as it is one of the
+    *           parameters that is hashed
+    * @return Future
+    */
    public CompletableFuture<Order> order(
          Credentials credentials, final String tokenBuy, final BigInteger amountBuy, final String tokenSell,
-         final BigInteger amountSell, final String address, final Long expires) {
+         final BigInteger amountSell, final Long expires
+   ) {
 
-         final CompletableFuture<Long> nounceF = returnNextNonce(address);
-         final CompletableFuture<String> ctcAdrF = returnContractAddress();
+      final CompletableFuture<Long> nounceF = returnNextNonce(credentials.getAddress());
+      final CompletableFuture<String> ctcAdrF = returnContractAddress();
 
-      return CompletableFuture.allOf(ctcAdrF, nounceF).thenApply(v -> {
+      return CompletableFuture.allOf(ctcAdrF, nounceF).thenCompose(v -> {
          try {
-            return IdexCrypto.createParamsSig(new OrderSigParms(ctcAdrF.get(), tokenBuy, amountBuy, tokenSell,
-                  amountSell, expires, nounceF.get(), address), credentials);
-         } catch (IOException | InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-         }
-      }).thenCompose(sigData -> {
-         try {
-            return this.order(tokenBuy, amountBuy, tokenSell, amountSell, address, nounceF.get(), expires,
-                  sigData.getV(), sigData.getR(), sigData.getS());
+            return order(credentials, ctcAdrF.get(), nounceF.get(), tokenBuy, amountBuy, tokenSell, amountSell,
+                  expires);
          } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
          }
       });
    }
-   
+
    /**
     * Cancels an order associated with the address.
     * 
@@ -174,15 +210,121 @@ public class IDexAPI {
       return process(CancelOrder.create(orderHash, address, nonce, v, r, s));
    }
 
-   public CompletableFuture<Outcome> cancel(final Credentials credentials, final String orderHash, String address) {
-      return returnNextNonce(address).thenCompose(nonce -> {
+   /**
+    * Cancels an order associated with the address.
+    * 
+    * @param credentials
+    *           Wallet credentials
+    * @param orderHash
+    *           The raw hash of the order you are cancelling.
+    * @return Future
+    */
+   public CompletableFuture<Outcome> cancel(final Credentials credentials, final String orderHash) {
+      if (log.isDebugEnabled())
+         log.debug("cancel: orderHash : " + orderHash);
+      return returnNextNonce(credentials.getAddress()).thenCompose(nonce -> {
          SignatureData sigData;
          try {
             sigData = IdexCrypto.createParamsSig(new CancelSigParms(orderHash, nonce), credentials);
          } catch (IOException e) {
             throw new RuntimeException(e);
          }
-         return this.cancel(orderHash, address, nonce, sigData.getV(), sigData.getR(), sigData.getS());
+         return this.cancel(orderHash, credentials.getAddress(), nonce, sigData.getV(), sigData.getR(), sigData.getS());
+      });
+   }
+
+   /**
+    * Withdraws funds associated with the address. You cannot withdraw funds
+    * that are tied up in open orders.
+    * 
+    * @param address
+    *           The address you are transacting from.
+    * @param amount
+    *           The raw amount you are withdrawing, not adjusted for token
+    *           precision.
+    * @param token
+    *           The address of the token you are withdrawing from, Constant
+    *           (DEFAULT_ETH_ADR) for ETH.
+    * @param nonce
+    *           One time numeric value associated with your address. Can get
+    *           from returnNextNonce.
+    * @param v
+    *           Value obtained from signing message hash.
+    * @param r
+    *           Value obtained from signing message hash.
+    * @param s
+    *           Value obtained from signing message hash.
+    * @return Future
+    * @see IDexAPI.DEFAULT_ETH_ADR
+    */
+   public CompletableFuture<Outcome> withdraw(
+         final String address, final BigInteger amount, final String token, long nonce, byte v, byte[] r, byte[] s
+   ) {
+      return process(Withdraw.create(address, amount, token, nonce, v, r, s));
+   }
+
+   /**
+    * Withdraws funds associated with the address. You cannot withdraw funds
+    * that are tied up in open orders.
+    * 
+    * @param credentials
+    *           Wallet credentials
+    * @param contractAddress
+    *           The contract address used for depositing, withdrawing, and
+    *           posting orders. Can get from returnContractAddress
+    * @param amount
+    *           The raw amount you are withdrawing, not adjusted for token
+    *           precision.
+    * @param token
+    *           The address of the token you are withdrawing from, Constant
+    *           (DEFAULT_ETH_ADR) for ETH.
+    * @param nonce
+    *           One time numeric value associated with your address. Can get
+    *           from returnNextNonce.
+    * @return Future
+    * @see IDexAPI.DEFAULT_ETH_ADR
+    */
+   public CompletableFuture<Outcome> withdraw(
+         final Credentials credentials, final String contractAddress, final BigInteger amount, final String token,
+         long nonce
+   ) {
+      final SignatureData sigData;
+      try {
+         sigData = IdexCrypto.createParamsSig(
+               new WithdrawSigParms(contractAddress, token, amount, credentials.getAddress(), nonce), credentials);
+      } catch (IOException e) {
+         throw new RuntimeException(e);
+      }
+      return withdraw(credentials.getAddress(), amount, token, nonce, sigData.getV(), sigData.getR(), sigData.getS());
+   }
+
+   /**
+    * Withdraws funds associated with the address. You cannot withdraw funds
+    * that are tied up in open orders.
+    * 
+    * @param credentials
+    *           Wallet credentials
+    * @param amount
+    *           The raw amount you are withdrawing, not adjusted for token
+    *           precision.
+    * @param token
+    *           The address of the token you are withdrawing from, Constant
+    *           (DEFAULT_ETH_ADR) for ETH.
+    * @return Future
+    * @see IDexAPI.DEFAULT_ETH_ADR
+    */
+   public CompletableFuture<Outcome> withdraw(
+         final Credentials credentials, final BigInteger amount, final String token
+   ) {
+      final CompletableFuture<Long> nounceF = returnNextNonce(credentials.getAddress());
+      final CompletableFuture<String> ctcAdrF = returnContractAddress();
+
+      return CompletableFuture.allOf(ctcAdrF, nounceF).thenCompose(v -> {
+         try {
+            return withdraw(credentials, ctcAdrF.get(), amount, token, nounceF.get());
+         } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException(e);
+         }
       });
    }
 
@@ -204,6 +346,32 @@ public class IDexAPI {
     */
    public CompletableFuture<String> returnContractAddress() {
       return process(ReturnContractAddress.create());
+   }
+
+   /**
+    * Returns the best-priced open orders for a given market.
+    * 
+    * The response is an object with asks and bids properties, each of which is
+    * an array that contains orders sorted by best price (lowest ask first, and
+    * highest bid first).
+    * 
+    * By default, the asks and bids lists include 1 order each (ie. the lowest
+    * ask and the highest bid). You may request up to 100 orders per segment by
+    * including the count parameter. Pagination is not supported.
+    * 
+    * Order objects contain price, amount, total, and orderHash properties, as
+    * well as a params property which contains additional data about the order
+    * that is useful for verifying the order's authenticity and to fill it. See
+    * the trade API call below for details on how to fill orders.
+    * 
+    * @param market
+    *           Market pair
+    * @param count
+    *           Number of records to be returned per asks/bids segment.
+    * @return Future
+    */
+   public CompletableFuture<OrderBook> returnOrderBook(final String market, final Integer count) {
+      return process(ReturnOrderBook.create(market, count));
    }
 
    /**
@@ -230,41 +398,137 @@ public class IDexAPI {
     */
    public CompletableFuture<List<Order>> returnOpenOrders(
          final String market, final String address, final Integer count, final Long cursor
-      ) {
+   ) {
       return process(ReturnOpenOrders.create(market, address, count, cursor));
-      }
+   }
 
-      /**
-       * Returns your deposit and withdrawal history within a range, specified
-       * by the "start" and "end" optional properties. Withdrawals can be marked
-       * as "PENDING" if they are queued for dispatch, "PROCESSING" if the
-       * transaction has been dispatched, and "COMPLETE" if the transaction has
-       * been mined.
-       * 
-       * @param address
-       *           Address of the wallet
-       * @param start
-       *           Optional Inclusive starting UNIX timestamp of returned result
-       * @param end
-       *           Optional Inclusive ending UNIX timestamp of returned results.
-       *           Defaults to current timestamp
-       * @return
-       */
+   /**
+    * Returns a single order.
+    * 
+    * @param orderHash
+    *           OrderHash
+    * @return Future
+    */
+   public CompletableFuture<Order> returnOrderStatus(final String orderHash) {
+      return process(ReturnOrderStatus.create(orderHash));
+   }
+
+   /**
+    * Returns all trades involving a given order hash.
+    * 
+    * @param orderHash
+    *           The order hash to query for associated trades.
+    * @return Future
+    */
+   public CompletableFuture<List<OrderTrade>> returnOrderTrades(final String orderHash) {
+      return process(ReturnOrderTrades.create(orderHash));
+   }
+
+   /**
+    * Returns a paginated list of all trades for a given market or address,
+    * sorted by date.
+    * 
+    * @param market
+    *           Required if address not specified.
+    * @param address
+    *           Required if market not specified. Returns all trades that
+    *           involve the given address as the maker or taker. Note - When
+    *           querying by address, the type property of a trade refers to the
+    *           action taken by the user, and not relative to the market. This
+    *           behavior is designed to mirror the "My Trades" section of the
+    *           IDEX website.
+    * @param start
+    *           Unix timestamp (in seconds) marking the time of the oldest trade
+    *           that will be included.
+    * @param end
+    *           Unix timestamp (in seconds) marking the time of the newest trade
+    *           that will be included.
+    * @param sort
+    *           Possible values are asc (oldest first) and desc (newest first).
+    *           Defaults to desc.
+    * @param count
+    *           Number of records to be returned per request. [1..100]
+    * @param cursor
+    *           For pagination. Provide the value returned in the
+    *           idex-next-cursor HTTP header to request the next slice (or
+    *           page). This endpoint uses the tid property of a record for the
+    *           cursor.
+    * @return Future
+    */
+   public CompletableFuture<List<TradeHistory>> returnTradeHistory(
+         String market, String address, Long start, Long end, String sort, Integer count, Long cursor
+   ) {
+      return process(ReturnTradeHistory.create(market, address, start, end, sort, count, cursor));
+   }
+
+   /**
+    * Returns a paginated list of all trades for a given market or address,
+    * sorted by date.
+    * 
+    * @param market
+    *           Required if address not specified.
+    * @param address
+    *           Required if market not specified. Returns all trades that
+    *           involve the given address as the maker or taker. Note - When
+    *           querying by address, the type property of a trade refers to the
+    *           action taken by the user, and not relative to the market. This
+    *           behavior is designed to mirror the "My Trades" section of the
+    *           IDEX website.
+    * @param start
+    *           Unix timestamp (in seconds) marking the time of the oldest trade
+    *           that will be included.
+    * @param end
+    *           Unix timestamp (in seconds) marking the time of the newest trade
+    *           that will be included.
+    * @param sort
+    *           Possible values are asc (oldest first) and desc (newest first).
+    *           Defaults to desc.
+    * @param count
+    *           Number of records to be returned per request. [1..100]
+    * @param cursor
+    *           For pagination. Provide the value returned in the
+    *           idex-next-cursor HTTP header to request the next slice (or
+    *           page). This endpoint uses the tid property of a record for the
+    *           cursor.
+    * @return Future
+    */
+   public CompletableFuture<List<TradeHistory>> returnTradeHistory(
+         String market, String address, LocalDateTime start, LocalDateTime end, String sort, Integer count, Long cursor
+   ) {
+      return process(ReturnTradeHistory.create(market, address, Utils.toEpochSecond(start), Utils.toEpochSecond(end),
+            sort, count, cursor));
+   }
+
+   /**
+    * Returns your deposit and withdrawal history within a range, specified by
+    * the "start" and "end" optional properties. Withdrawals can be marked as
+    * "PENDING" if they are queued for dispatch, "PROCESSING" if the transaction
+    * has been dispatched, and "COMPLETE" if the transaction has been mined.
+    * 
+    * @param address
+    *           Address of the wallet
+    * @param start
+    *           Optional Inclusive starting UNIX timestamp of returned result
+    * @param end
+    *           Optional Inclusive ending UNIX timestamp of returned results.
+    *           Defaults to current timestamp
+    * @return
+    */
    public CompletableFuture<DepositsWithdrawals> returnDepositsWithdrawals(
          final String address, final LocalDateTime start, final LocalDateTime end
-      ) {
+   ) {
       return process(ReturnDepositsWithdrawals.create(address, start, end));
-      }
+   }
 
-      /**
-       * Returns available balances for an address along with the amount of open
-       * orders for each token, indexed by token symbol.
-       * 
-       * @param address
-       *           ETH Address
-       * @return Future
-       */
-      public CompletableFuture<Map<String, BalanceOrder>> returnCompleteBalances(final String address) {
+   /**
+    * Returns available balances for an address along with the amount of open
+    * orders for each token, indexed by token symbol.
+    * 
+    * @param address
+    *           ETH Address
+    * @return Future
+    */
+   public CompletableFuture<Map<String, BalanceOrder>> returnCompleteBalances(final String address) {
       return process(ReturnCompleteBalances.create(address));
    }
 
@@ -313,18 +577,24 @@ public class IDexAPI {
     * @return Future
     */
    public CompletableFuture<Ticker> returnTicker(final String market) {
-      return sendAsync(ReturnTicker.create(market)).thenApply(httpRsp -> httpRsp.body())
-            .thenApply(body -> ReturnTicker.fromJson(mapper, body, market));
+      return process(ReturnTicker.create(market));
    }
 
    private <V, T extends Parser<V> & Req> CompletableFuture<V> process(final T requestParser) {
-      return sendAsync(requestParser).thenApply(httpRsp -> httpRsp.body())
-            .thenApply(body -> requestParser.parse(mapper, body));
+      return sendAsync(requestParser).thenApply(rsp -> {
+         System.out.println("********************* Header ***************************");
+         rsp.getHeaders().forEach(entry -> System.out.println(entry.getKey() + " : " + entry.getValue()));
+         System.out.println("********************* Body ***************************");
+         System.out.println(rsp.getResponseBody());
+         System.out.println("********************* Body Pretty ***************************");
+         Utils.prettyPrint(new ObjectMapper(), rsp.getResponseBody());
+         return rsp;
+      }).thenApply(httpRsp -> httpRsp.getResponseBody()).thenApply(body -> requestParser.parse(mapper, body));
    }
 
-   private CompletableFuture<HttpResponse<String>> sendAsync(Req req) {
-      final HttpRequest httpreq = HttpRequest.newBuilder(URI.create(HTTP_ENDPOINT + req.getEndpoint()))
-            .setHeader("Content-Type", CONTENT_TYPE).POST(BodyPublishers.ofString(req.getPayload())).build();
-      return client.sendAsync(httpreq, HttpResponse.BodyHandlers.ofString());
+   private CompletableFuture<Response> sendAsync(final Req req) {
+      final Request httpreq = new RequestBuilder(HttpConstants.Methods.POST).setUrl(HTTP_ENDPOINT + req.getEndpoint())
+            .setHeader("Content-Type", CONTENT_TYPE).setBody(req.getPayload()).build();
+      return client.executeRequest(httpreq).toCompletableFuture();
    }
 }

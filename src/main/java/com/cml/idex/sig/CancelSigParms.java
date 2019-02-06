@@ -1,9 +1,11 @@
-package com.cml.idex.util;
+package com.cml.idex.sig;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
+
+import org.web3j.utils.Numeric;
+
+import com.cml.idex.util.IdexCrypto;
 
 public class CancelSigParms implements SigParms {
 
@@ -18,9 +20,9 @@ public class CancelSigParms implements SigParms {
 
    @Override
    public byte[] encode() throws IOException {
-      ByteArrayOutputStream ba = new ByteArrayOutputStream();
-      ba.write(orderHash.substring(2).getBytes(StandardCharsets.UTF_8));
-      ba.write(BigInteger.valueOf(nonce).toByteArray());
+      ByteArrayOutputStream ba = new ByteArrayOutputStream(64);
+      ba.write(Numeric.hexStringToByteArray(orderHash));
+      ba.write(IdexCrypto.encodeNumeric(nonce));
       return ba.toByteArray();
    }
 }

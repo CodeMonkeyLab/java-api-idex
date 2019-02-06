@@ -37,6 +37,7 @@ public class ReturnContractAddress implements Req, Parser<String> {
    public static String fromJson(final ObjectMapper mapper, final String body) {
       try {
          final JsonNode root = mapper.readTree(body);
+         Utils.checkError(root);
          return root.get("address").asText();
       } catch (Exception e1) {
          throw new IDexException(ErrorCode.RESPONSE_PARSE_FAILED, e1.getLocalizedMessage(), e1);

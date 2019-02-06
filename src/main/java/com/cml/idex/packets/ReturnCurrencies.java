@@ -7,6 +7,7 @@ import java.util.Map.Entry;
 
 import com.cml.idex.ErrorCode;
 import com.cml.idex.IDexException;
+import com.cml.idex.util.Utils;
 import com.cml.idex.value.Currency;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,7 +41,7 @@ public class ReturnCurrencies implements Req, Parser<Map<String, Currency>> {
    public static Map<String, Currency> fromJson(final ObjectMapper mapper, final String body) {
       try {
          JsonNode root = mapper.readTree(body);
-
+         Utils.checkError(root);
          final Map<String, Currency> map = new HashMap<>();
          final Iterator<Entry<String, JsonNode>> fieldItr = root.fields();
          while (fieldItr.hasNext()) {

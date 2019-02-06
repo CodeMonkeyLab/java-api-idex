@@ -53,10 +53,10 @@ public class ReturnOpenOrders implements Req, Parser<List<Order>> {
    }
 
    @Override
-   public List<Order> parse(ObjectMapper mapper, String body) {
-      if (Utils.isEmptyJson(body))
+   public List<Order> parse(ObjectMapper mapper, String json) {
+      if (Utils.isEmptyJson(json))
          return Collections.emptyList();
-      return fromJson(mapper, body);
+      return fromJson(mapper, json);
    }
 
    public static ReturnOpenOrders create(String market, String address, Integer count, Long cursor) {
@@ -65,12 +65,17 @@ public class ReturnOpenOrders implements Req, Parser<List<Order>> {
 
       if (marketFixed == null && adrFixed == null)
          throw new IllegalArgumentException("market or address is requried!");
+
+      if (count != null)
+         if (count < 1 || count > 100)
+            throw new IllegalArgumentException("count must be between 1 and 100 OR null value");
+
       return new ReturnOpenOrders(marketFixed, adrFixed, count, cursor);
    }
 
-   private static List<Order> fromJson(final ObjectMapper mapper, final String body) {
+   private static List<Order> fromJson(final ObjectMapper mapper, final String json) {
       try {
-         final JsonNode root = mapper.readTree(body);
+         final JsonNode root = mapper.readTree(json);
 
          List<Order> orders = new LinkedList<>();
 
@@ -88,14 +93,18 @@ public class ReturnOpenOrders implements Req, Parser<List<Order>> {
       if (node == null)
          return null;
 
-      final long timestamp = node.get("timestamp").asLong();
-      final String market = node.get("market").asText();
-      final long orderNumber = node.get("orderNumber").asLong();
+      JsonNode field = node.get("timestamp");
+      final Long timestamp = field == null ? null : field.asLong();
+      field = node.get("market");
+      final String market = field == null ? null : field.asText();
+      field = node.get("orderNumber");
+      final Long orderNumber = field == null ? null : field.asLong();
       final String orderHash = node.get("orderHash").asText();
-      final BigDecimal price = Utils.toBD(node, "price");
-      final BigDecimal amount = Utils.toBD(node, "amount");
-      final BigDecimal total = Utils.toBD(node, "total");
-      final String type = node.get("type").asText();
+      final BigDecimal price = Utils.toBDrequired(node, "price");
+      final BigDecimal amount = Utils.toBDrequired(node, "amount");
+      final BigDecimal total = Utils.toBDrequired(node, "total");
+      field = node.get("type");
+      final String type = field == null ? null : field.asText();
       final OrderParm params = parseOrderParams(node.get("params"));
       return new Order(timestamp, market, orderNumber, orderHash, price, amount, total, type, params);
    }
@@ -110,7 +119,8 @@ public class ReturnOpenOrders implements Req, Parser<List<Order>> {
       final String tokenSell = node.get("tokenSell").asText();
       final int sellPrecision = node.get("sellPrecision").asInt();
       final long amountSell = node.get("amountSell").asLong();
-      final long expires = node.get("expires").asLong();
+      JsonNode field = node.get("expires");
+      final Long expires = field == null ? null : field.asLong();
       final long nonce = node.get("nonce").asLong();
       final String user = node.get("user").asText();
 

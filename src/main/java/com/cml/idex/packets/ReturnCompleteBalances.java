@@ -53,7 +53,7 @@ public class ReturnCompleteBalances implements Req, Parser<Map<String, BalanceOr
    private static Map<String, BalanceOrder> fromJson(final ObjectMapper mapper, final String body) {
       try {
          final JsonNode root = mapper.readTree(body);
-
+         Utils.checkError(root);
          final Map<String, BalanceOrder> map = new HashMap<>();
          final Iterator<Entry<String, JsonNode>> fieldItr = root.fields();
 
@@ -68,8 +68,8 @@ public class ReturnCompleteBalances implements Req, Parser<Map<String, BalanceOr
    }
 
    private static BalanceOrder parseCompleteBalance(final JsonNode node) {
-      BigDecimal available = Utils.toBD(node, "available");
-      BigDecimal onOrders = Utils.toBD(node, "onOrders");
+      BigDecimal available = Utils.toBDrequired(node, "available");
+      BigDecimal onOrders = Utils.toBDrequired(node, "onOrders");
       return new BalanceOrder(available, onOrders);
    }
 }

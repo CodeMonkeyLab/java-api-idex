@@ -2,9 +2,12 @@ package com.cml.idex;
 
 public enum ErrorCode {
 
+   GENERIC,
    RESPONSE_PARSE_FAILED,
    UNKNOW_MARKET,
    UNKNOWN_ADDRESS,
    ORDER_FAILED,
-   TRADE_FAILED;
+   ORDER_NOT_FOUND,
+   TRADE_FAILED,
+   WITHDRAW_FAILED;
 }

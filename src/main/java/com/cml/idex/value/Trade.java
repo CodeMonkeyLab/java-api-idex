@@ -1,53 +1,69 @@
 package com.cml.idex.value;
 
-import java.math.BigInteger;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class Trade {
 
-   final String     address;
-   final BigInteger amount;
-   final String     orderHash;
-   final long       nonce;
-   final byte       v;
-   final byte[]     r;
-   final byte[]     s;
+   final BigDecimal    amount;
+   final LocalDateTime date;
+   final BigDecimal    total;
+   final String        market;
+   final String        type;
+   final BigDecimal    price;
+   final String        orderHash;
+   final String        uuid;
 
-   public Trade(String address, BigInteger amount, String orderHash, long nonce, byte v, byte[] r, byte[] s) {
+   public Trade(
+         BigDecimal amount, LocalDateTime date, BigDecimal total, String market, String type, BigDecimal price,
+         String orderHash, String uuid
+   ) {
       super();
-      this.address = address;
       this.amount = amount;
+      this.date = date;
+      this.total = total;
+      this.market = market;
+      this.type = type;
+      this.price = price;
       this.orderHash = orderHash;
-      this.nonce = nonce;
-      this.v = v;
-      this.r = r;
-      this.s = s;
+      this.uuid = uuid;
    }
 
-   public String getAddress() {
-      return address;
-   }
-
-   public BigInteger getAmount() {
+   public BigDecimal getAmount() {
       return amount;
+   }
+
+   public LocalDateTime getDate() {
+      return date;
+   }
+
+   public BigDecimal getTotal() {
+      return total;
+   }
+
+   public String getMarket() {
+      return market;
+   }
+
+   public String getType() {
+      return type;
+   }
+
+   public BigDecimal getPrice() {
+      return price;
    }
 
    public String getOrderHash() {
       return orderHash;
    }
 
-   public long getNonce() {
-      return nonce;
+   public String getUuid() {
+      return uuid;
    }
 
-   public byte getV() {
-      return v;
-   }
-
-   public byte[] getR() {
-      return r;
-   }
-
-   public byte[] getS() {
-      return s;
+   @Override
+   public String toString() {
+      return "Trade [amount=" + amount + ", date=" + date + ", total=" + total + ", market=" + market + ", type=" + type
+            + ", price=" + price + ", orderHash=" + orderHash + ", uuid=" + uuid + "]";
    }
 }

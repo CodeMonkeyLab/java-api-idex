@@ -14,4 +14,9 @@ public class Outcome {
    public boolean isSuccessful() {
       return value == 0;
    }
+
+   @Override
+   public String toString() {
+      return "Outcome [outcome=" + outcome + ", value=" + value + "]";
+   }
 }

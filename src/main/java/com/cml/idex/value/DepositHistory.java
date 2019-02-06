@@ -2,14 +2,14 @@ package com.cml.idex.value;
 
 import java.math.BigDecimal;
 
-public class Deposit {
+public class DepositHistory {
    final int        depositNumber;
    final String     currency;
    final BigDecimal amount;
    final long       timestamp;
    final String     transactionHash;
 
-   public Deposit(int depositNumber, String currency, BigDecimal amount, long timestamp, String transactionHash) {
+   public DepositHistory(int depositNumber, String currency, BigDecimal amount, long timestamp, String transactionHash) {
       super();
       this.depositNumber = depositNumber;
       this.currency = currency;

@@ -1,6 +1,6 @@
 package com.cml.idex.packets;
 
-import java.nio.charset.StandardCharsets;
+import org.web3j.utils.Numeric;
 
 import com.cml.idex.ErrorCode;
 import com.cml.idex.IDexException;
@@ -36,9 +36,9 @@ public class CancelOrder implements Req, Parser<Outcome> {
    @Override
    public String getPayload() {
       return new StringBuilder("{\"orderHash\": \"").append(orderHash).append("\", \"address\": \"").append(address)
-            .append("\", \"nonce\": \"").append(nonce).append(", \"v\": ").append(v).append(", \"r\": \"")
-            .append(new String(r, StandardCharsets.UTF_8)).append("\", \"s\": \"")
-            .append(new String(s, StandardCharsets.UTF_8)).append("}").toString();
+            .append("\", \"nonce\": \"").append(nonce).append("\", \"v\": ").append(v).append(", \"r\": \"")
+            .append(Numeric.toHexString(r)).append("\", \"s\": \"").append(Numeric.toHexString(s)).append("\"}")
+            .toString();
    }
 
    @Override
@@ -59,6 +59,8 @@ public class CancelOrder implements Req, Parser<Outcome> {
             System.out.println("Not successful!!!");
             System.out.println("Not successful!!!");
             System.out.println(body);
+            if (root.get("error") != null)
+               return new Outcome(root.get("error").asText(), -1);
             return new Outcome("failed", -1);
          }
          return new Outcome("success", root.get("success").asInt());

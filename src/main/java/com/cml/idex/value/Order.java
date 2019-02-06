@@ -4,9 +4,9 @@ import java.math.BigDecimal;
 
 public class Order {
 
-   final long       timestamp;
+   final Long       timestamp;
    final String     market;
-   final long       orderNumber;
+   final Long       orderNumber;
    final String     orderHash;
    final BigDecimal price;
    final BigDecimal amount;
@@ -15,7 +15,7 @@ public class Order {
    final OrderParm  params;
 
    public Order(
-         long timestamp, String market, long orderNumber, String orderHash, BigDecimal price, BigDecimal amount,
+         Long timestamp, String market, Long orderNumber, String orderHash, BigDecimal price, BigDecimal amount,
          BigDecimal total, String type, OrderParm params
    ) {
       super();
@@ -30,7 +30,7 @@ public class Order {
       this.params = params;
    }
 
-   public long getTimestamp() {
+   public Long getTimestamp() {
       return timestamp;
    }
 
@@ -38,7 +38,7 @@ public class Order {
       return market;
    }
 
-   public long getOrderNumber() {
+   public Long getOrderNumber() {
       return orderNumber;
    }
 

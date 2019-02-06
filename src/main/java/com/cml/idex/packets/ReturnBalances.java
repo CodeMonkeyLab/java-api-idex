@@ -48,6 +48,7 @@ public class ReturnBalances implements Req, Parser<Map<String, BigDecimal>> {
    private static Map<String, BigDecimal> fromJson(final ObjectMapper mapper, final String body) {
       try {
          final JsonNode root = mapper.readTree(body);
+         Utils.checkError(root);
          final Map<String, BigDecimal> map = new HashMap<>();
          final Iterator<Entry<String, JsonNode>> fieldItr = root.fields();
 

@@ -44,6 +44,7 @@ public class Return24Volume implements Req, Parser<Volume> {
    public static Volume fromJson(final ObjectMapper mapper, final String body) {
       try {
          JsonNode root = mapper.readTree(body);
+         Utils.checkError(root);
 
          final Map<String, VolumePair> volumePairs = new HashMap<>();
          final Map<String, BigDecimal> totalVolumes = new HashMap<>();

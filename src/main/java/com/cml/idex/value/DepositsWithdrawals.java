@@ -2,31 +2,39 @@ package com.cml.idex.value;
 
 import java.util.List;
 
+/**
+ * Deposit and Withdrawal history
+ * 
+ * @author plouw
+ *
+ */
 public class DepositsWithdrawals {
 
-   List<Deposit>  deposits;
-   List<Withdraw> withdrawals;
+   final List<DepositHistory>  deposits;
+   final List<WithdrawHistory> withdrawals;
 
-   public DepositsWithdrawals(List<Deposit> deposits, List<Withdraw> withdrawals) {
+   public DepositsWithdrawals(List<DepositHistory> deposits, List<WithdrawHistory> withdrawals) {
       super();
       this.deposits = deposits;
       this.withdrawals = withdrawals;
    }
 
-   public List<Deposit> getDeposits() {
+   /**
+    * List of Historical Deposits.
+    * 
+    * @return List of DepositHistory
+    */
+   public List<DepositHistory> getDeposits() {
       return deposits;
    }
 
-   public void setDeposits(List<Deposit> deposits) {
-      this.deposits = deposits;
-   }
-
-   public List<Withdraw> getWithdrawals() {
+   /**
+    * List of Historical Withdrawals.
+    * 
+    * @return List of WithdrawHistory
+    */
+   public List<WithdrawHistory> getWithdrawals() {
       return withdrawals;
-   }
-
-   public void setWithdrawals(List<Withdraw> withdrawals) {
-      this.withdrawals = withdrawals;
    }
 
 }

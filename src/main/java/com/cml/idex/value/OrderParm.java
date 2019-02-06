@@ -8,13 +8,13 @@ public class OrderParm {
    final String tokenSell;
    final int    sellPrecision;
    final long   amountSell;
-   final long   expires;
+   final Long   expires;
    final long   nonce;
    final String user;
 
    public OrderParm(
          String tokenBuy, int buyPrecision, long amountBuy, String tokenSell, int sellPrecision, long amountSell,
-         long expires, long nonce, String user
+         Long expires, long nonce, String user
    ) {
       super();
       this.tokenBuy = tokenBuy;
@@ -52,7 +52,7 @@ public class OrderParm {
       return amountSell;
    }
 
-   public long getExpires() {
+   public Long getExpires() {
       return expires;
    }
 

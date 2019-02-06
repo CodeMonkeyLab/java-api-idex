@@ -4,5 +4,5 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public interface Parser<V> {
 
-   V parse(final ObjectMapper mapper, final String body);
+   V parse(final ObjectMapper mapper, final String json);
 }

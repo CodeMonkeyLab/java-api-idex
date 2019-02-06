@@ -1,9 +1,13 @@
 package com.cml.idex.util;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
+import com.cml.idex.ErrorCode;
+import com.cml.idex.IDexException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,11 +17,45 @@ public class Utils {
    private Utils() {
    }
 
+   public static final DateTimeFormatter DT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+   /**
+    * Produces DateTime from given node and field name
+    * 
+    * @param node
+    *           JsonNode
+    * @param fieldName
+    *           Field Name
+    * @return LocalDateTime
+    */
+   public static final LocalDateTime parseDate(final JsonNode node, final String fieldName) {
+      return LocalDateTime.parse(node.get(fieldName).asText(), DT_FORMATTER);
+   }
+
+   public static final void checkError(final JsonNode root) {
+      if (root.get("error") != null)
+         throw new IDexException(ErrorCode.GENERIC, root.get("error").asText());
+   }
+
    public static final boolean isEmptyJson(final String json) {
       return json == null || json.length() < 3;
    }
 
+   /**
+    * Returns the BigDecimal for the fieldName. Not Required so returns null if
+    * field is not found.
+    * 
+    * @param node
+    * @param fieldName
+    * @return
+    */
    public static final BigDecimal toBD(final JsonNode node, final String fieldName) {
+      if (node.get(fieldName) == null)
+         return null;
+      return toBD(node.get(fieldName).asText());
+   }
+
+   public static final BigDecimal toBDrequired(final JsonNode node, final String fieldName) {
       return toBD(node.get(fieldName).asText());
    }
 
@@ -35,7 +73,9 @@ public class Utils {
       return addr != null && addr.length == 20;
    }
 
-   public static long toEpochSecond(final LocalDateTime dateTime) {
+   public static Long toEpochSecond(final LocalDateTime dateTime) {
+      if (dateTime == null)
+         return null;
       final ZoneId zoneId = ZoneId.systemDefault();
       return dateTime.atZone(zoneId).toEpochSecond();
    }
@@ -59,8 +99,11 @@ public class Utils {
 
    public static void prettyPrint(ObjectMapper mapper, String body) {
       try {
-         System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(body));
+         Object json = mapper.readValue(body, Object.class);
+         System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
       } catch (JsonProcessingException e) {
+         e.printStackTrace();
+      } catch (IOException e) {
          // TODO Auto-generated catch block
          e.printStackTrace();
       }

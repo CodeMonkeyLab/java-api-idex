@@ -32,10 +32,10 @@ public class ReturnNextNonce implements Req, Parser<Long> {
    }
 
    @Override
-   public Long parse(ObjectMapper mapper, String body) {
-      if (Utils.isEmptyJson(body))
+   public Long parse(ObjectMapper mapper, String json) {
+      if (Utils.isEmptyJson(json))
          throw new IDexException(ErrorCode.UNKNOWN_ADDRESS, address);
-      return fromJson(mapper, body);
+      return fromJson(mapper, json);
    }
 
    public static ReturnNextNonce create(final String address) {
@@ -45,9 +45,10 @@ public class ReturnNextNonce implements Req, Parser<Long> {
       return new ReturnNextNonce(address);
    }
 
-   private static long fromJson(final ObjectMapper mapper, final String body) {
+   private static long fromJson(final ObjectMapper mapper, final String json) {
       try {
-         final JsonNode root = mapper.readTree(body);
+         final JsonNode root = mapper.readTree(json);
+         Utils.checkError(root);
          return root.get("nonce").asLong();
       } catch (Exception e1) {
          throw new IDexException(ErrorCode.RESPONSE_PARSE_FAILED, e1.getLocalizedMessage(), e1);

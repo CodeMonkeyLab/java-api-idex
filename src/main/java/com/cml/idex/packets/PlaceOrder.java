@@ -1,7 +1,8 @@
 package com.cml.idex.packets;
 
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
+
+import org.web3j.utils.Numeric;
 
 import com.cml.idex.ErrorCode;
 import com.cml.idex.IDexException;
@@ -47,12 +48,14 @@ public class PlaceOrder implements Req, Parser<Order> {
 
    @Override
    public String getPayload() {
-      return new StringBuilder("{\"tokenBuy\": \"").append(tokenBuy).append("\", \"amountBuy\": \"").append(amountBuy)
-            .append("\", \"tokenSell\": \"").append(tokenSell).append("\", \"amountSell\": \"").append(amountSell)
-            .append("\", \"address\": \"").append(address).append("\", \"nonce\": \"").append(nonce)
+      String val = new StringBuilder("{\"tokenBuy\": \"").append(tokenBuy).append("\", \"amountBuy\": \"")
+            .append(amountBuy).append("\", \"tokenSell\": \"").append(tokenSell).append("\", \"amountSell\": \"")
+            .append(amountSell).append("\", \"address\": \"").append(address).append("\", \"nonce\": \"").append(nonce)
             .append("\", \"expires\": ").append(expires).append(", \"v\": ").append(v).append(", \"r\": \"")
-            .append(new String(r, StandardCharsets.UTF_8)).append("\", \"s\": \"")
-            .append(new String(s, StandardCharsets.UTF_8)).append("}").toString();
+            .append(Numeric.toHexString(r)).append("\", \"s\": \"").append(Numeric.toHexString(s)).append("\"}")
+            .toString();
+
+      return val;
    }
 
    @Override
@@ -69,9 +72,11 @@ public class PlaceOrder implements Req, Parser<Order> {
       return new PlaceOrder(tokenBuy, amountBuy, tokenSell, amountSell, address, nonce, expires, v, r, s);
    }
 
-   private static Order fromJson(final ObjectMapper mapper, final String body) {
+   public static Order fromJson(final ObjectMapper mapper, final String body) {
       try {
          final JsonNode root = mapper.readTree(body);
+         Utils.checkError(root);
+
          if (root.get("orderNumber") == null)
             throw new IDexException(ErrorCode.ORDER_FAILED, body);
          return ReturnOpenOrders.parseOrder(root);

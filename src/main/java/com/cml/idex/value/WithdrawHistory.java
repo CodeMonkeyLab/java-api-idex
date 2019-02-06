@@ -2,7 +2,7 @@ package com.cml.idex.value;
 
 import java.math.BigDecimal;
 
-public class Withdraw {
+public class WithdrawHistory {
    final int            depositNumber;
    final String         currency;
    final BigDecimal     amount;
@@ -10,7 +10,7 @@ public class Withdraw {
    final String         transactionHash;
    final WithdrawStatus status;
 
-   public Withdraw(
+   public WithdrawHistory(
          int depositNumber, String currency, BigDecimal amount, long timestamp, String transactionHash,
          WithdrawStatus status
    ) {
