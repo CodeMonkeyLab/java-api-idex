@@ -11,7 +11,7 @@ Add the following dependency to your project's Maven pom.xml:
 
 ```xml
 <dependency>
-	<groupId>com.cml.idex</groupId>
+	<groupId>com.codemonkeylab.idex</groupId>
 	<artifactId>java-api-idex</artifactId>
 	<version>1.10.0</version>
 </dependency>
