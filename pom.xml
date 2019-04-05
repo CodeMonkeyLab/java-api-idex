@@ -6,6 +6,10 @@
 	<artifactId>java-api-idex</artifactId>
 	<version>0.0.1</version>
 
+	<name>${project.groupId}:${project.artifactId}</name>
+	<description>JAVA wrapper of the IDEX market interface</description>
+	<url>https://github.com/CodeMonkeyLab/java-api-idex/</url>
+
 	<properties>
 		<java.version>1.8</java.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
@@ -128,4 +132,31 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<licenses>
+		<license>
+			<name>MIT License</name>
+			<url>http://www.opensource.org/licenses/mit-license.php</url>
+		</license>
+	</licenses>
+
+	<developers>
+		<developer>
+			<name>Philip Louw</name>
+			<email>cml@codemonkeylab.com</email>
+			<organization>CodeMonkeyLab</organization>
+			<organizationUrl>https://github.com/CodeMonkeyLab</organizationUrl>
+		</developer>
+	</developers>
+
+	<issueManagement>
+		<system>GitHub</system>
+		<url>https://github.com/CodeMonkeyLab/java-api-idex/issues</url>
+	</issueManagement>
+
+	<scm>
+		<connection>scm:git:git://github.com/CodeMonkeyLab/java-api-idex.git</connection>
+		<developerConnection>scm:git:ssh://git@github.com:CodeMonkeyLab/java-api-idex.git</developerConnection>
+		<url>https://github.com/CodeMonkeyLab/java-api-idex</url>
+	</scm>
 </project>
