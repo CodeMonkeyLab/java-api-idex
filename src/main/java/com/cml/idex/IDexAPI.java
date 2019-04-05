@@ -59,9 +59,8 @@ public class IDexAPI {
 
    private static final Logger   log             = LoggerFactory.getLogger(IDexAPI.class);
 
-   private String                version         = "v1";
    private static final String   HTTP_ENDPOINT   = "https://api.idex.market/";
-   private static final String   WS_ENDPOINT     = "wss://v1.idex.market";
+   // private static final String WS_ENDPOINT = "wss://v1.idex.market";
    private static final String   CONTENT_TYPE    = "application/json";
 
    private final AsyncHttpClient client          = Dsl.asyncHttpClient();
@@ -97,7 +96,7 @@ public class IDexAPI {
     *           Derived from signing the hash of the message
     * @param s
     *           Derived from signing the hash of the message
-    * @return
+    * @return CompletableFuture of order action
     */
    public CompletableFuture<Order> order(
          final String tokenBuy, final BigInteger amountBuy, final String tokenSell, final BigInteger amountSell,
@@ -132,7 +131,7 @@ public class IDexAPI {
     *           DEPRECATED this property has no effect on your limit order but
     *           is still REQUIRED to submit a limit order as it is one of the
     *           parameters that is hashed
-    * @return Future
+    * @return CompletableFuture of order action
     */
    public CompletableFuture<Order> order(
          Credentials credentials, final String contractAdress, final long nonce, final String tokenBuy,
@@ -169,7 +168,7 @@ public class IDexAPI {
     *           DEPRECATED this property has no effect on your limit order but
     *           is still REQUIRED to submit a limit order as it is one of the
     *           parameters that is hashed
-    * @return Future
+    * @return CompletableFuture of order action
     */
    public CompletableFuture<Order> order(
          Credentials credentials, final String tokenBuy, final BigInteger amountBuy, final String tokenSell,
@@ -204,7 +203,7 @@ public class IDexAPI {
     *           Derived from signing the hash of the message.
     * @param s
     *           Derived from signing the hash of the message.
-    * @return Future
+    * @return CompletableFuture of cancel action
     */
    public CompletableFuture<Outcome> cancel(String orderHash, String address, long nonce, byte v, byte[] r, byte[] s) {
       return process(CancelOrder.create(orderHash, address, nonce, v, r, s));
@@ -217,7 +216,7 @@ public class IDexAPI {
     *           Wallet credentials
     * @param orderHash
     *           The raw hash of the order you are cancelling.
-    * @return Future
+    * @return CompletableFuture of cancel action
     */
    public CompletableFuture<Outcome> cancel(final Credentials credentials, final String orderHash) {
       if (log.isDebugEnabled())
@@ -244,7 +243,7 @@ public class IDexAPI {
     *           precision.
     * @param token
     *           The address of the token you are withdrawing from, Constant
-    *           (DEFAULT_ETH_ADR) for ETH.
+    *           (IDexAPI.DEFAULT_ETH_ADR) for ETH.
     * @param nonce
     *           One time numeric value associated with your address. Can get
     *           from returnNextNonce.
@@ -254,8 +253,7 @@ public class IDexAPI {
     *           Value obtained from signing message hash.
     * @param s
     *           Value obtained from signing message hash.
-    * @return Future
-    * @see IDexAPI.DEFAULT_ETH_ADR
+    * @return CompletableFuture of withdraw action
     */
    public CompletableFuture<Outcome> withdraw(
          final String address, final BigInteger amount, final String token, long nonce, byte v, byte[] r, byte[] s
@@ -277,12 +275,11 @@ public class IDexAPI {
     *           precision.
     * @param token
     *           The address of the token you are withdrawing from, Constant
-    *           (DEFAULT_ETH_ADR) for ETH.
+    *           (IDexAPI.DEFAULT_ETH_ADR) for ETH.
     * @param nonce
     *           One time numeric value associated with your address. Can get
     *           from returnNextNonce.
-    * @return Future
-    * @see IDexAPI.DEFAULT_ETH_ADR
+    * @return CompletableFuture of withdraw action
     */
    public CompletableFuture<Outcome> withdraw(
          final Credentials credentials, final String contractAddress, final BigInteger amount, final String token,
@@ -309,9 +306,8 @@ public class IDexAPI {
     *           precision.
     * @param token
     *           The address of the token you are withdrawing from, Constant
-    *           (DEFAULT_ETH_ADR) for ETH.
+    *           (IDexAPI.DEFAULT_ETH_ADR) for ETH.
     * @return Future
-    * @see IDexAPI.DEFAULT_ETH_ADR
     */
    public CompletableFuture<Outcome> withdraw(
          final Credentials credentials, final BigInteger amount, final String token
@@ -331,8 +327,10 @@ public class IDexAPI {
    /**
     * Returns the lowest nonce that you can use from the given address in one of
     * the contract-backed trade functions.
-    * 
-    * @return Future
+    *
+    * @param address
+    *           Ethereum Address to get nounce for
+    * @return CompletableFuture
     */
    public CompletableFuture<Long> returnNextNonce(final String address) {
       return process(ReturnNextNonce.create(address));
@@ -512,7 +510,7 @@ public class IDexAPI {
     * @param end
     *           Optional Inclusive ending UNIX timestamp of returned results.
     *           Defaults to current timestamp
-    * @return
+    * @return CompletableFuture
     */
    public CompletableFuture<DepositsWithdrawals> returnDepositsWithdrawals(
          final String address, final LocalDateTime start, final LocalDateTime end
@@ -581,15 +579,8 @@ public class IDexAPI {
    }
 
    private <V, T extends Parser<V> & Req> CompletableFuture<V> process(final T requestParser) {
-      return sendAsync(requestParser).thenApply(rsp -> {
-         System.out.println("********************* Header ***************************");
-         rsp.getHeaders().forEach(entry -> System.out.println(entry.getKey() + " : " + entry.getValue()));
-         System.out.println("********************* Body ***************************");
-         System.out.println(rsp.getResponseBody());
-         System.out.println("********************* Body Pretty ***************************");
-         Utils.prettyPrint(new ObjectMapper(), rsp.getResponseBody());
-         return rsp;
-      }).thenApply(httpRsp -> httpRsp.getResponseBody()).thenApply(body -> requestParser.parse(mapper, body));
+      return sendAsync(requestParser).thenApply(httpRsp -> httpRsp.getResponseBody())
+            .thenApply(body -> requestParser.parse(mapper, body));
    }
 
    private CompletableFuture<Response> sendAsync(final Req req) {

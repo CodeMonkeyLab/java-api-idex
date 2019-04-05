@@ -56,9 +56,6 @@ public class CancelOrder implements Req, Parser<Outcome> {
       try {
          final JsonNode root = mapper.readTree(body);
          if (root.get("success") == null) {
-            System.out.println("Not successful!!!");
-            System.out.println("Not successful!!!");
-            System.out.println(body);
             if (root.get("error") != null)
                return new Outcome(root.get("error").asText(), -1);
             return new Outcome("failed", -1);

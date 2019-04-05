@@ -32,11 +32,24 @@ public class Utils {
       return LocalDateTime.parse(node.get(fieldName).asText(), DT_FORMATTER);
    }
 
+   /**
+    * Checks if the JSON is error and throws exception if error found.
+    * 
+    * @param root
+    *           JsonNode
+    */
    public static final void checkError(final JsonNode root) {
       if (root.get("error") != null)
          throw new IDexException(ErrorCode.GENERIC, root.get("error").asText());
    }
 
+   /**
+    * Returns true if the json is empty.
+    * 
+    * @param json
+    *           JSON string to check
+    * @return true if JSON string is "emptry"
+    */
    public static final boolean isEmptyJson(final String json) {
       return json == null || json.length() < 3;
    }
@@ -46,8 +59,10 @@ public class Utils {
     * field is not found.
     * 
     * @param node
+    *           JSON Node
     * @param fieldName
-    * @return
+    *           JSON field name to process
+    * @return BigDecimal value for fieldName
     */
    public static final BigDecimal toBD(final JsonNode node, final String fieldName) {
       if (node.get(fieldName) == null)
@@ -55,10 +70,27 @@ public class Utils {
       return toBD(node.get(fieldName).asText());
    }
 
+   /**
+    * Returns the BigDecimal for the fieldName. If not found will throw a
+    * exception.
+    * 
+    * @param node
+    *           JSON Node
+    * @param fieldName
+    *           JSON field name to process
+    * @return BigDecimal value for fieldName
+    */
    public static final BigDecimal toBDrequired(final JsonNode node, final String fieldName) {
       return toBD(node.get(fieldName).asText());
    }
 
+   /**
+    * Converts the String to BigDecimal.
+    * 
+    * @param value
+    *           String to convert
+    * @return BigDecimal value
+    */
    public static final BigDecimal toBD(final String value) {
       try {
          return new BigDecimal(value);
