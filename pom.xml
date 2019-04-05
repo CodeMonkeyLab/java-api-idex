@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.cml.idex</groupId>
 	<artifactId>java-api-idex</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.2-SNAPSHOT</version>
 
 	<name>${project.groupId}:${project.artifactId}</name>
 	<description>JAVA wrapper of the IDEX market interface</description>
@@ -240,6 +240,6 @@
 		<connection>scm:git:git://github.com/CodeMonkeyLab/java-api-idex.git</connection>
 		<developerConnection>scm:git:ssh://git@github.com:CodeMonkeyLab/java-api-idex.git</developerConnection>
 		<url>https://github.com/CodeMonkeyLab/java-api-idex</url>
-	  <tag>v0.0.1</tag>
+	  <tag>HEAD</tag>
   </scm>
 </project>
