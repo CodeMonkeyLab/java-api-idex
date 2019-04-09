@@ -13,7 +13,7 @@ Add the following dependency to your project's Maven pom.xml:
 <dependency>
 	<groupId>com.codemonkeylab.idex</groupId>
 	<artifactId>java-api-idex</artifactId>
-	<version>1.10.0</version>
+	<version>0.0.2</version>
 </dependency>
 ```
 
