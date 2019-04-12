@@ -129,16 +129,21 @@ public class Utils {
       return fixedStr;
    }
 
-   public static void prettyPrint(ObjectMapper mapper, String body) {
+   public static String prettyfyJson(ObjectMapper mapper, String body) {
       try {
          Object json = mapper.readValue(body, Object.class);
-         System.out.println(mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json));
+         return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(json);
       } catch (JsonProcessingException e) {
          e.printStackTrace();
       } catch (IOException e) {
          // TODO Auto-generated catch block
          e.printStackTrace();
       }
+      return null;
+   }
+
+   public static void prettyPrint(ObjectMapper mapper, String body) {
+      System.out.println(prettyfyJson(mapper, body));
    }
 
 }

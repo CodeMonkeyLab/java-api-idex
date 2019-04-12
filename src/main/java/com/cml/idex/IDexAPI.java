@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Dsl;
@@ -29,6 +31,7 @@ import com.cml.idex.packets.ReturnBalances;
 import com.cml.idex.packets.ReturnCompleteBalances;
 import com.cml.idex.packets.ReturnContractAddress;
 import com.cml.idex.packets.ReturnCurrencies;
+import com.cml.idex.packets.ReturnCurrenciesWithPairs;
 import com.cml.idex.packets.ReturnDepositsWithdrawals;
 import com.cml.idex.packets.ReturnNextNonce;
 import com.cml.idex.packets.ReturnOpenOrders;
@@ -37,6 +40,7 @@ import com.cml.idex.packets.ReturnOrderStatus;
 import com.cml.idex.packets.ReturnOrderTrades;
 import com.cml.idex.packets.ReturnTicker;
 import com.cml.idex.packets.ReturnTradeHistory;
+import com.cml.idex.packets.SortOrder;
 import com.cml.idex.packets.Withdraw;
 import com.cml.idex.sig.CancelSigParms;
 import com.cml.idex.sig.OrderSigParms;
@@ -45,6 +49,7 @@ import com.cml.idex.util.IdexCrypto;
 import com.cml.idex.util.Utils;
 import com.cml.idex.value.BalanceOrder;
 import com.cml.idex.value.Currency;
+import com.cml.idex.value.CurrencyPairs;
 import com.cml.idex.value.DepositsWithdrawals;
 import com.cml.idex.value.Order;
 import com.cml.idex.value.OrderBook;
@@ -427,7 +432,8 @@ public class IDexAPI {
     * sorted by date.
     * 
     * @param market
-    *           Required if address not specified.
+    *           Required if address not specified. Note market is separated with
+    *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
     * @param address
     *           Required if market not specified. Returns all trades that
     *           involve the given address as the maker or taker. Note - When
@@ -454,9 +460,89 @@ public class IDexAPI {
     * @return Future
     */
    public CompletableFuture<List<TradeHistory>> returnTradeHistory(
-         String market, String address, Long start, Long end, String sort, Integer count, Long cursor
+         String market, String address, Long start, Long end, SortOrder sort, Integer count, String cursor
    ) {
       return process(ReturnTradeHistory.create(market, address, start, end, sort, count, cursor));
+   }
+
+   /**
+    * Returns Result Producer that paginats throught the results till no more is
+    * found! All trades for a given market or address, sorted by date.
+    * 
+    * @param market
+    *           Required if address not specified. Note market is separated with
+    *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
+    * @param address
+    *           Required if market not specified. Returns all trades that
+    *           involve the given address as the maker or taker. Note - When
+    *           querying by address, the type property of a trade refers to the
+    *           action taken by the user, and not relative to the market. This
+    *           behavior is designed to mirror the "My Trades" section of the
+    *           IDEX website.
+    * @param start
+    *           Unix timestamp (in seconds) marking the time of the oldest trade
+    *           that will be included.
+    * @param end
+    *           Unix timestamp (in seconds) marking the time of the newest trade
+    *           that will be included.
+    * @param sort
+    *           Possible values are asc (oldest first) and desc (newest first).
+    *           Defaults to desc.
+    * @param count
+    *           Number of records to be returned per request. [1..100]
+    * @return
+    */
+   public Results<CompletableFuture<List<TradeHistory>>> returnTradeHistoryProducer(
+         String market, String address, LocalDateTime start, LocalDateTime end, SortOrder sortOrder, Integer count
+   ) {
+      return returnTradeHistoryProducer(market, address, start, end, sortOrder, count, null);
+   }
+
+   /**
+    * Returns Result Producer that paginats throught the results till no more is
+    * found! All trades for a given market or address, sorted by date.
+    * 
+    * @param market
+    *           Required if address not specified. Note market is separated with
+    *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
+    * @param address
+    *           Required if market not specified. Returns all trades that
+    *           involve the given address as the maker or taker. Note - When
+    *           querying by address, the type property of a trade refers to the
+    *           action taken by the user, and not relative to the market. This
+    *           behavior is designed to mirror the "My Trades" section of the
+    *           IDEX website.
+    * @param start
+    *           Unix timestamp (in seconds) marking the time of the oldest trade
+    *           that will be included.
+    * @param end
+    *           Unix timestamp (in seconds) marking the time of the newest trade
+    *           that will be included.
+    * @param sort
+    *           Possible values are asc (oldest first) and desc (newest first).
+    *           Defaults to desc.
+    * @param count
+    *           Number of records to be returned per request. [1..100]
+    * @param cursor
+    *           For pagination. Provide the value returned in the
+    *           idex-next-cursor HTTP header to request the next slice (or
+    *           page). This endpoint uses the tid property of a record for the
+    *           cursor.
+    * @return
+    */
+   public Results<CompletableFuture<List<TradeHistory>>> returnTradeHistoryProducer(
+         String market, String address, LocalDateTime start, LocalDateTime end, SortOrder sortOrder, Integer count,
+         String cursor
+   ) {
+
+      Cursor cursorVal = new Cursor(cursor);
+      Function<String, CompletableFuture<List<TradeHistory>>> valueProvider = (nextCursor) -> process(
+            ReturnTradeHistory.create(market, address, Utils.toEpochSecond(start), Utils.toEpochSecond(end), sortOrder,
+                  count, nextCursor),
+            cursorVal::setNextCursor);
+
+      Results<CompletableFuture<List<TradeHistory>>> results = new Results<>(cursorVal, valueProvider);
+      return results;
    }
 
    /**
@@ -464,7 +550,8 @@ public class IDexAPI {
     * sorted by date.
     * 
     * @param market
-    *           Required if address not specified.
+    *           Required if address not specified. Note market is separated with
+    *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
     * @param address
     *           Required if market not specified. Returns all trades that
     *           involve the given address as the maker or taker. Note - When
@@ -491,7 +578,8 @@ public class IDexAPI {
     * @return Future
     */
    public CompletableFuture<List<TradeHistory>> returnTradeHistory(
-         String market, String address, LocalDateTime start, LocalDateTime end, String sort, Integer count, Long cursor
+         String market, String address, LocalDateTime start, LocalDateTime end, SortOrder sort, Integer count,
+         String cursor
    ) {
       return process(ReturnTradeHistory.create(market, address, Utils.toEpochSecond(start), Utils.toEpochSecond(end),
             sort, count, cursor));
@@ -562,6 +650,15 @@ public class IDexAPI {
    }
 
    /**
+    * Returns all the currency pair availble on the IDEX Market.
+    * 
+    * @return CurrencyPairs
+    */
+   public CompletableFuture<CurrencyPairs> returnCurrenciesWithPairs() {
+      return process(ReturnCurrenciesWithPairs.create());
+   }
+
+   /**
     * Designed to behave similar to the API call of the same name provided by
     * the Poloniex HTTP API, with the addition of highs and lows. Returns all
     * necessary 24 hr data.
@@ -578,12 +675,39 @@ public class IDexAPI {
       return process(ReturnTicker.create(market));
    }
 
+   public void shutdown() throws IOException {
+      if (client.isClosed())
+         return;
+      client.close();
+   }
+
    private <V, T extends Parser<V> & Req> CompletableFuture<V> process(final T requestParser) {
-      return sendAsync(requestParser).thenApply(httpRsp -> httpRsp.getResponseBody())
-            .thenApply(body -> requestParser.parse(mapper, body));
+      return sendAsync(requestParser).thenApply(httpRsp -> {
+         return httpRsp.getResponseBody();
+      }).thenApply(body -> {
+         Utils.prettyPrint(mapper, body);
+         return body;
+      }).thenApply(body -> requestParser.parse(mapper, body));
+   }
+
+   private <V, T extends Parser<V> & Req> CompletableFuture<V> process(
+         final T requestParser, final Consumer<String> nextIdConsumer
+   ) {
+      return sendAsync(requestParser).thenApply(httpRsp -> {
+         final String body = httpRsp.getResponseBody();
+         if (log.isDebugEnabled())
+            log.debug("process: " + Utils.prettyfyJson(mapper, body));
+         nextIdConsumer.accept(httpRsp.getHeader("idex-next-cursor"));
+         return requestParser.parse(mapper, body);
+      });
    }
 
    private CompletableFuture<Response> sendAsync(final Req req) {
+      if (log.isDebugEnabled()) {
+         log.debug("sendAsync : " + req);
+         log.debug("sendAsync : " + req.getPayload());
+         log.debug(Utils.prettyfyJson(mapper, req.getPayload()));
+      }
       final Request httpreq = new RequestBuilder(HttpConstants.Methods.POST).setUrl(HTTP_ENDPOINT + req.getEndpoint())
             .setHeader("Content-Type", CONTENT_TYPE).setBody(req.getPayload()).build();
       return client.executeRequest(httpreq).toCompletableFuture();

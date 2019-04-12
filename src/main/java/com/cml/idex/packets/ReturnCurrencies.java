@@ -42,18 +42,27 @@ public class ReturnCurrencies implements Req, Parser<Map<String, Currency>> {
       try {
          JsonNode root = mapper.readTree(body);
          Utils.checkError(root);
-         final Map<String, Currency> map = new HashMap<>();
-         final Iterator<Entry<String, JsonNode>> fieldItr = root.fields();
-         while (fieldItr.hasNext()) {
-            final Entry<String, JsonNode> entry = fieldItr.next();
-            final JsonNode node = entry.getValue();
-            map.put(entry.getKey(),
-                  new Currency(node.get("decimals").asInt(), node.get("address").asText(), node.get("name").asText()));
-         }
-
-         return map;
+         return parseCurrencies(root);
       } catch (Exception e1) {
          throw new IDexException(ErrorCode.RESPONSE_PARSE_FAILED, e1.getLocalizedMessage(), e1);
       }
+   }
+
+   public static Map<String, Currency> parseCurrencies(final JsonNode node) {
+      final Map<String, Currency> map = new HashMap<>();
+      final Iterator<Entry<String, JsonNode>> fieldItr = node.fields();
+      while (fieldItr.hasNext()) {
+         final Entry<String, JsonNode> entry = fieldItr.next();
+         final JsonNode nodeEntry = entry.getValue();
+         map.put(entry.getKey(), parseCurrency(nodeEntry));
+      }
+
+      return map;
+   }
+
+   public static Currency parseCurrency(final JsonNode node) {
+      if (node == null)
+         return null;
+      return new Currency(node.get("decimals").asInt(), node.get("address").asText(), node.get("name").asText());
    }
 }

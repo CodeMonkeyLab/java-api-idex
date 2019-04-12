@@ -16,16 +16,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class ReturnTradeHistory implements Req, Parser<List<TradeHistory>> {
 
-   private final String  market;
-   private final String  address;
-   private final Long    start;
-   private final Long    end;
-   private final String  sort;
-   private final Integer count;
-   private final Long    cursor;
+   private final String    market;
+   private final String    address;
+   private final Long      start;
+   private final Long      end;
+   private final SortOrder sort;
+   private final Integer   count;
+   private final String    cursor;
 
    private ReturnTradeHistory(
-         String market, String address, Long start, Long end, String sort, Integer count, Long cursor
+         String market, String address, Long start, Long end, SortOrder sort, Integer count, String cursor
    ) {
       super();
       this.market = market;
@@ -58,11 +58,11 @@ public class ReturnTradeHistory implements Req, Parser<List<TradeHistory>> {
       if (end != null)
          sb.append(",\"end\":").append(end.longValue());
       if (sort != null)
-         sb.append(",\"sort\": \"").append(sort).append("\"");
+         sb.append(",\"sort\": \"").append(sort.getValue()).append("\"");
       if (count != null)
          sb.append(",\"count\":").append(count);
       if (cursor != null)
-         sb.append("\"cursor\": \"").append(cursor).append("\"");
+         sb.append(",\"cursor\": \"").append(cursor).append("\"");
       return sb.append("}").toString();
    }
 
@@ -74,7 +74,7 @@ public class ReturnTradeHistory implements Req, Parser<List<TradeHistory>> {
    }
 
    public static ReturnTradeHistory create(
-         String market, String address, Long start, Long end, String sort, Integer count, Long cursor
+         String market, String address, Long start, Long end, SortOrder sort, Integer count, String cursor
    ) {
       final String marketFixed = Utils.fixString(market);
       final String adrFixed = Utils.fixString(address);
@@ -92,6 +92,7 @@ public class ReturnTradeHistory implements Req, Parser<List<TradeHistory>> {
    private static List<TradeHistory> fromJson(final ObjectMapper mapper, final String json) {
       try {
          final JsonNode root = mapper.readTree(json);
+         Utils.checkError(root);
 
          final List<TradeHistory> trades = new LinkedList<>();
 

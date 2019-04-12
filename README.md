@@ -27,6 +27,12 @@ import com.cml.idex.IDexAPI;
 
 final Credentials credentials = Credentials.create("WALLET_PRIVATE_KEY");
 final IDexAPI idex = new IDexAPI();
+try {
+   // Your code here
+}
+finally {
+   idex.shutdown();
+}
 ```
 
 When interacting with ETH trading pair use the IDexAPI.DEFAULT_ETH_ADR as the token address.
@@ -41,12 +47,14 @@ Returns available balances for an address(total deposited minus amount in open o
 import com.cml.idex.IDexAPI;
 
 final IDexAPI idex = new IDexAPI();
-CompletableFuture<Map<String, BigDecimal>> balFuture = idex.returnBalances("ETH_ADR");
 try {
+   CompletableFuture<Map<String, BigDecimal>> balFuture = idex.returnBalances("ETH_ADR");
    balFuture.get().entrySet()
       .forEach(entry -> System.out.println("ERC20: " + entry.getKey() + ", Balance: " + entry.getValue()));
 } catch (InterruptedException | ExecutionException e) {
    e.printStackTrace();
+} finally {
+   idex.shutdown();
 }
 ```
 
@@ -58,5 +66,39 @@ Returns the contract address used for depositing, withdrawing, and posting order
 import com.cml.idex.IDexAPI;
 
 final IDexAPI idex = new IDexAPI();
-idex.returnBalances("ETH_ADR");
+try {
+   System.out.println("IDEX Contract Address : " + idex.returnContractAddress().get());
+} catch (InterruptedException | ExecutionException e) {
+   e.printStackTrace();
+} finally {
+   idex.shutdown();
+}
+```
+
+### Trade History for Market
+
+To get trading history for Token Pair. The Results object returned allows you paginate through the results.
+
+```java
+import com.cml.idex.IDexAPI;
+
+final IDexAPI idex = new IDexAPI();
+try {
+   // Market History for ETH_ZCC
+   Results<CompletableFuture<List<TradeHistory>>> tradeHistoryF = idex.returnTradeHistoryProducer("ETH_ZCC", null,
+            LocalDateTime.of(2019, 1, 1, 1, 1), LocalDateTime.now(), SortOrder.ASC, 50);
+
+   CompletableFuture<List<TradeHistory>> future = tradeHistoryF.next();
+   future.join();
+
+   while (future.get() != null && !future.get().isEmpty()) {
+      System.out.println("Size = " + future.get().size());
+      future = tradeHistoryF.next();
+      future.join();
+   }
+} catch (InterruptedException | ExecutionException e) {
+   e.printStackTrace();
+} finally {
+   idex.shutdown();
+}
 ```

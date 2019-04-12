@@ -13,14 +13,30 @@ public class Currency {
       this.name = name;
    }
 
+   /**
+    * Decimal Places.
+    * 
+    * @return Decimal Places
+    */
    public int getDecimals() {
       return decimals;
    }
 
+   /**
+    * Ethereum Contract Address unless the token is ETH the uses
+    * IDexAPI.DEFAULT_ETH_ADR.
+    * 
+    * @return Ethereum Contract Address for Token.
+    */
    public String getAddress() {
       return address;
    }
 
+   /**
+    * Name of the Token.
+    * 
+    * @return Name
+    */
    public String getName() {
       return name;
    }
