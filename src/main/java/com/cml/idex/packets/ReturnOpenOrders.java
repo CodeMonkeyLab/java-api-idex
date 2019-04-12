@@ -19,9 +19,9 @@ public class ReturnOpenOrders implements Req, Parser<List<Order>> {
    final String  market;
    final String  address;
    final Integer count;
-   final Long    cursor;
+   final String  cursor;
 
-   private ReturnOpenOrders(String market, String address, Integer count, Long cursor) {
+   private ReturnOpenOrders(String market, String address, Integer count, String cursor) {
       super();
       this.market = market;
       this.address = address;
@@ -59,7 +59,7 @@ public class ReturnOpenOrders implements Req, Parser<List<Order>> {
       return fromJson(mapper, json);
    }
 
-   public static ReturnOpenOrders create(String market, String address, Integer count, Long cursor) {
+   public static ReturnOpenOrders create(String market, String address, Integer count, String cursor) {
       final String marketFixed = Utils.fixString(market);
       final String adrFixed = Utils.fixString(address);
 

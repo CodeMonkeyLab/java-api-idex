@@ -400,9 +400,62 @@ public class IDexAPI {
     * @return Future
     */
    public CompletableFuture<List<Order>> returnOpenOrders(
-         final String market, final String address, final Integer count, final Long cursor
+         final String market, final String address, final Integer count, final String cursor
    ) {
       return process(ReturnOpenOrders.create(market, address, count, cursor));
+   }
+
+   /**
+    * Returns a paginated list of all open orders for a given market or address.
+    * 
+    * The response is similar to the response of returnOrderBook except that
+    * orders are sorted chronologically (oldest first) instead of by price. The
+    * data format of an order is the same, and there are some additional data
+    * points.
+    * 
+    * @param market
+    *           Required if address not specified.
+    * @param address
+    *           Required if market not specified. Returns all open orders placed
+    *           by the given address.
+    * @param count
+    *           Number of records to be returned per request. Default 10
+    * @param cursor
+    *           For pagination. Provide the value returned in the
+    *           idex-next-cursor HTTP header to request the next slice (or
+    *           page). This endpoint uses the orderNumber property of a record
+    *           for the cursor.
+    * @return Future
+    */
+   public Results<CompletableFuture<List<Order>>> returnOpenOrdersProducer(
+         final String market, final String address, final Integer count, final String cursor
+   ) {
+      final Cursor cursorVal = new Cursor(cursor);
+      return new Results<>(cursorVal, nextCursor -> process(ReturnOpenOrders.create(market, address, count, nextCursor),
+            cursorVal::setNextCursor));
+   }
+
+   /**
+    * Returns a paginated list of all open orders for a given market or address.
+    * 
+    * The response is similar to the response of returnOrderBook except that
+    * orders are sorted chronologically (oldest first) instead of by price. The
+    * data format of an order is the same, and there are some additional data
+    * points.
+    * 
+    * @param market
+    *           Required if address not specified.
+    * @param address
+    *           Required if market not specified. Returns all open orders placed
+    *           by the given address.
+    * @param count
+    *           Number of records to be returned per request. Default 10
+    * @return Future
+    */
+   public Results<CompletableFuture<List<Order>>> returnOpenOrdersProducer(
+         final String market, final String address, final Integer count
+   ) {
+      return returnOpenOrdersProducer(market, address, count, null);
    }
 
    /**
