@@ -30,3 +30,5 @@ target/
 bin/
 src/main/resources/rebel.xml
 .checkstyle
+pom.xml.releaseBackup
+release.properties

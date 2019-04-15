@@ -85,16 +85,21 @@ import com.cml.idex.IDexAPI;
 final IDexAPI idex = new IDexAPI();
 try {
    // Market History for ETH_ZCC
-   Results<CompletableFuture<List<TradeHistory>>> tradeHistoryF = idex.returnTradeHistoryProducer("ETH_ZCC", null,
+   CompletableFuture<Page<List<TradeHistory>>> tradeHistoryF = idex.returnTradeHistoryPage("ETH_ZCC", null,
             LocalDateTime.of(2019, 1, 1, 1, 1), LocalDateTime.now(), SortOrder.ASC, 50);
 
-   CompletableFuture<List<TradeHistory>> future = tradeHistoryF.next();
    future.join();
 
-   while (future.get() != null && !future.get().isEmpty()) {
-      System.out.println("Size = " + future.get().size());
-      future = tradeHistoryF.next();
-      future.join();
+   while (tradeHistoryF.get().getResults() != null && !tradeHistoryF.get().getResults().isEmpty()) {
+      // Current page
+      final Page<List<TradeHistory>> page = tradeHistoryF.get();
+      // Results for this page
+      final List<TradeHistory> trades = page.getResults();
+      
+      System.out.println("Size = " + trades.size());
+      // Return the next Page results
+      tradeHistoryF = page.nextPage();
+      tradeHistoryF.join();
    }
 } catch (InterruptedException | ExecutionException e) {
    e.printStackTrace();

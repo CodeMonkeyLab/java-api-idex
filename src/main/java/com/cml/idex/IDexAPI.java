@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.asynchttpclient.AsyncHttpClient;
@@ -427,12 +427,18 @@ public class IDexAPI {
     *           for the cursor.
     * @return Future
     */
-   public Results<CompletableFuture<List<Order>>> returnOpenOrdersProducer(
+   public CompletableFuture<Page<List<Order>>> returnOpenOrdersPage(
          final String market, final String address, final Integer count, final String cursor
    ) {
-      final Cursor cursorVal = new Cursor(cursor);
-      return new Results<>(cursorVal, nextCursor -> process(ReturnOpenOrders.create(market, address, count, nextCursor),
-            cursorVal::setNextCursor));
+
+      final Function<String, CompletableFuture<Page<List<Order>>>> valueProvider = nextCursor -> returnOpenOrdersPage(
+            market, address, count, nextCursor);
+
+      final BiFunction<List<Order>, String, Page<List<Order>>> pageBuilder = (results, nextCursor) -> {
+         return new Page<>(nextCursor, valueProvider, results);
+      };
+
+      return process(ReturnOpenOrders.create(market, address, count, cursor), pageBuilder);
    }
 
    /**
@@ -452,10 +458,10 @@ public class IDexAPI {
     *           Number of records to be returned per request. Default 10
     * @return Future
     */
-   public Results<CompletableFuture<List<Order>>> returnOpenOrdersProducer(
+   public CompletableFuture<Page<List<Order>>> returnOpenOrdersPage(
          final String market, final String address, final Integer count
    ) {
-      return returnOpenOrdersProducer(market, address, count, null);
+      return returnOpenOrdersPage(market, address, count, null);
    }
 
    /**
@@ -538,17 +544,17 @@ public class IDexAPI {
     * @param end
     *           Unix timestamp (in seconds) marking the time of the newest trade
     *           that will be included.
-    * @param sort
+    * @param sortOrder
     *           Possible values are asc (oldest first) and desc (newest first).
     *           Defaults to desc.
     * @param count
     *           Number of records to be returned per request. [1..100]
-    * @return
+    * @return Results Producer
     */
-   public Results<CompletableFuture<List<TradeHistory>>> returnTradeHistoryProducer(
+   public CompletableFuture<Page<List<TradeHistory>>> returnTradeHistoryPage(
          String market, String address, LocalDateTime start, LocalDateTime end, SortOrder sortOrder, Integer count
    ) {
-      return returnTradeHistoryProducer(market, address, start, end, sortOrder, count, null);
+      return returnTradeHistoryPage(market, address, start, end, sortOrder, count, null);
    }
 
    /**
@@ -571,7 +577,7 @@ public class IDexAPI {
     * @param end
     *           Unix timestamp (in seconds) marking the time of the newest trade
     *           that will be included.
-    * @param sort
+    * @param sortOrder
     *           Possible values are asc (oldest first) and desc (newest first).
     *           Defaults to desc.
     * @param count
@@ -581,21 +587,22 @@ public class IDexAPI {
     *           idex-next-cursor HTTP header to request the next slice (or
     *           page). This endpoint uses the tid property of a record for the
     *           cursor.
-    * @return
+    * @return Results Producer
     */
-   public Results<CompletableFuture<List<TradeHistory>>> returnTradeHistoryProducer(
+   public CompletableFuture<Page<List<TradeHistory>>> returnTradeHistoryPage(
          String market, String address, LocalDateTime start, LocalDateTime end, SortOrder sortOrder, Integer count,
          String cursor
    ) {
 
-      Cursor cursorVal = new Cursor(cursor);
-      Function<String, CompletableFuture<List<TradeHistory>>> valueProvider = (nextCursor) -> process(
-            ReturnTradeHistory.create(market, address, Utils.toEpochSecond(start), Utils.toEpochSecond(end), sortOrder,
-                  count, nextCursor),
-            cursorVal::setNextCursor);
+      final Function<String, CompletableFuture<Page<List<TradeHistory>>>> valueProvider = nextCursor -> returnTradeHistoryPage(
+            market, address, start, end, sortOrder, count, nextCursor);
 
-      Results<CompletableFuture<List<TradeHistory>>> results = new Results<>(cursorVal, valueProvider);
-      return results;
+      final BiFunction<List<TradeHistory>, String, Page<List<TradeHistory>>> pageBuilder = (results, nextCursor) -> {
+         return new Page<>(nextCursor, valueProvider, results);
+      };
+
+      return process(ReturnTradeHistory.create(market, address, Utils.toEpochSecond(start), Utils.toEpochSecond(end),
+            sortOrder, count, cursor), pageBuilder);
    }
 
    /**
@@ -743,15 +750,14 @@ public class IDexAPI {
       }).thenApply(body -> requestParser.parse(mapper, body));
    }
 
-   private <V, T extends Parser<V> & Req> CompletableFuture<V> process(
-         final T requestParser, final Consumer<String> nextIdConsumer
+   private <V, T extends Parser<V> & Req> CompletableFuture<Page<V>> process(
+         final T requestParser, final BiFunction<V, String, Page<V>> pageProducer
    ) {
       return sendAsync(requestParser).thenApply(httpRsp -> {
          final String body = httpRsp.getResponseBody();
          if (log.isDebugEnabled())
             log.debug("process: " + Utils.prettyfyJson(mapper, body));
-         nextIdConsumer.accept(httpRsp.getHeader("idex-next-cursor"));
-         return requestParser.parse(mapper, body);
+         return pageProducer.apply(requestParser.parse(mapper, body), httpRsp.getHeader("idex-next-cursor"));
       });
    }
 

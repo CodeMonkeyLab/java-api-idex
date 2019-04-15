@@ -112,7 +112,7 @@
 				<configuration>
 					<archive>
 						<manifestEntries>
-							<Automatic-Module-Name>com.cml.idex.api</Automatic-Module-Name>
+							<Automatic-Module-Name>com.codemonkeylab.idex.api</Automatic-Module-Name>
 						</manifestEntries>
 					</archive>
 				</configuration>
