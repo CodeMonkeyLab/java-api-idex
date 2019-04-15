@@ -32,3 +32,4 @@ src/main/resources/rebel.xml
 .checkstyle
 pom.xml.releaseBackup
 release.properties
+/pom.xml.versionsBackup

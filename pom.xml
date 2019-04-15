@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.codemonkeylab.idex</groupId>
 	<artifactId>java-api-idex</artifactId>
-	<version>0.0.3-SNAPSHOT</version>
+	<version>0.0.3</version>
 
 	<name>${project.groupId}:${project.artifactId}</name>
 	<description>JAVA wrapper of the IDEX market interface</description>
