@@ -94,6 +94,11 @@ public class TradeHistory {
       return gasFee;
    }
 
+   /**
+    * Unix epoch time. To convert to TimeStamp remember to multiply with 1000.
+    * 
+    * @return Unix epoch time
+    */
    public Long getTimestamp() {
       return timestamp;
    }
