@@ -20,13 +20,13 @@ public class PlaceOrder implements Req, Parser<Order> {
    final String     address;
    final long       nonce;
    final long       expires;
-   final byte       v;
+   final byte[]     v;
    final byte[]     r;
    final byte[]     s;
 
    private PlaceOrder(
          String tokenBuy, BigInteger amountBuy, String tokenSell, BigInteger amountSell, String address, long nonce,
-         long expires, byte v, byte[] r, byte[] s
+         long expires, byte[] v, byte[] r, byte[] s
    ) {
       super();
       this.tokenBuy = tokenBuy;
@@ -51,9 +51,9 @@ public class PlaceOrder implements Req, Parser<Order> {
       String val = new StringBuilder("{\"tokenBuy\": \"").append(tokenBuy).append("\", \"amountBuy\": \"")
             .append(amountBuy).append("\", \"tokenSell\": \"").append(tokenSell).append("\", \"amountSell\": \"")
             .append(amountSell).append("\", \"address\": \"").append(address).append("\", \"nonce\": \"").append(nonce)
-            .append("\", \"expires\": ").append(expires).append(", \"v\": ").append(v).append(", \"r\": \"")
-            .append(Numeric.toHexString(r)).append("\", \"s\": \"").append(Numeric.toHexString(s)).append("\"}")
-            .toString();
+            .append("\", \"expires\": ").append(expires).append(", \"v\": ").append(Numeric.toBigInt(v).longValue())
+            .append(", \"r\": \"").append(Numeric.toHexString(r)).append("\", \"s\": \"").append(Numeric.toHexString(s))
+            .append("\"}").toString();
 
       return val;
    }
@@ -67,7 +67,7 @@ public class PlaceOrder implements Req, Parser<Order> {
 
    public static PlaceOrder create(
          String tokenBuy, BigInteger amountBuy, String tokenSell, BigInteger amountSell, String address, Long nonce,
-         Long expires, byte v, byte[] r, byte[] s
+         Long expires, byte[] v, byte[] r, byte[] s
    ) {
       return new PlaceOrder(tokenBuy, amountBuy, tokenSell, amountSell, address, nonce, expires, v, r, s);
    }

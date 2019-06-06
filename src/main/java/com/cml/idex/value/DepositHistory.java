@@ -9,7 +9,9 @@ public class DepositHistory {
    final long       timestamp;
    final String     transactionHash;
 
-   public DepositHistory(int depositNumber, String currency, BigDecimal amount, long timestamp, String transactionHash) {
+   public DepositHistory(
+         int depositNumber, String currency, BigDecimal amount, long timestamp, String transactionHash
+   ) {
       super();
       this.depositNumber = depositNumber;
       this.currency = currency;

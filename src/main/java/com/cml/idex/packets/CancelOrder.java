@@ -14,11 +14,11 @@ public class CancelOrder implements Req, Parser<Outcome> {
    final String orderHash;
    final String address;
    final long   nonce;
-   final byte   v;
+   final byte[] v;
    final byte[] r;
    final byte[] s;
 
-   private CancelOrder(String orderHash, String address, long nonce, byte v, byte[] r, byte[] s) {
+   private CancelOrder(String orderHash, String address, long nonce, byte[] v, byte[] r, byte[] s) {
       super();
       this.orderHash = orderHash;
       this.address = address;
@@ -36,9 +36,9 @@ public class CancelOrder implements Req, Parser<Outcome> {
    @Override
    public String getPayload() {
       return new StringBuilder("{\"orderHash\": \"").append(orderHash).append("\", \"address\": \"").append(address)
-            .append("\", \"nonce\": \"").append(nonce).append("\", \"v\": ").append(v).append(", \"r\": \"")
-            .append(Numeric.toHexString(r)).append("\", \"s\": \"").append(Numeric.toHexString(s)).append("\"}")
-            .toString();
+            .append("\", \"nonce\": \"").append(nonce).append("\", \"v\": ").append(Numeric.toBigInt(v).longValue())
+            .append(", \"r\": \"").append(Numeric.toHexString(r)).append("\", \"s\": \"").append(Numeric.toHexString(s))
+            .append("\"}").toString();
    }
 
    @Override
@@ -48,7 +48,7 @@ public class CancelOrder implements Req, Parser<Outcome> {
       return fromJson(mapper, body);
    }
 
-   public static CancelOrder create(String orderHash, String address, long nonce, byte v, byte[] r, byte[] s) {
+   public static CancelOrder create(String orderHash, String address, long nonce, byte[] v, byte[] r, byte[] s) {
       return new CancelOrder(orderHash, address, nonce, v, r, s);
    }
 

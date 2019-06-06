@@ -75,7 +75,7 @@ public class IDexAPI {
 
    /**
     * Places a limit order on IDEX.
-    * 
+    *
     * @param tokenBuy
     *           The address of the token you will receive as a result of the
     *           trade.
@@ -105,14 +105,14 @@ public class IDexAPI {
     */
    public CompletableFuture<Order> order(
          final String tokenBuy, final BigInteger amountBuy, final String tokenSell, final BigInteger amountSell,
-         final String address, final long nonce, final long expires, final byte v, final byte[] r, final byte[] s
+         final String address, final long nonce, final long expires, final byte[] v, final byte[] r, final byte[] s
    ) {
       return process(PlaceOrder.create(tokenBuy, amountBuy, tokenSell, amountSell, address, nonce, expires, v, r, s));
    }
 
    /**
     * Places a limit order on IDEX.
-    * 
+    *
     * @param credentials
     *           Wallet credentials
     * @param contractAdress
@@ -155,7 +155,7 @@ public class IDexAPI {
 
    /**
     * Places a limit order on IDEX.
-    * 
+    *
     * @param credentials
     *           Wallet credentials
     * @param tokenBuy
@@ -195,7 +195,7 @@ public class IDexAPI {
 
    /**
     * Cancels an order associated with the address.
-    * 
+    *
     * @param orderHash
     *           The raw hash of the order you are cancelling.
     * @param address
@@ -210,13 +210,15 @@ public class IDexAPI {
     *           Derived from signing the hash of the message.
     * @return CompletableFuture of cancel action
     */
-   public CompletableFuture<Outcome> cancel(String orderHash, String address, long nonce, byte v, byte[] r, byte[] s) {
+   public CompletableFuture<Outcome> cancel(
+         String orderHash, String address, long nonce, byte[] v, byte[] r, byte[] s
+   ) {
       return process(CancelOrder.create(orderHash, address, nonce, v, r, s));
    }
 
    /**
     * Cancels an order associated with the address.
-    * 
+    *
     * @param credentials
     *           Wallet credentials
     * @param orderHash
@@ -240,7 +242,7 @@ public class IDexAPI {
    /**
     * Withdraws funds associated with the address. You cannot withdraw funds
     * that are tied up in open orders.
-    * 
+    *
     * @param address
     *           The address you are transacting from.
     * @param amount
@@ -261,7 +263,7 @@ public class IDexAPI {
     * @return CompletableFuture of withdraw action
     */
    public CompletableFuture<Outcome> withdraw(
-         final String address, final BigInteger amount, final String token, long nonce, byte v, byte[] r, byte[] s
+         final String address, final BigInteger amount, final String token, long nonce, byte[] v, byte[] r, byte[] s
    ) {
       return process(Withdraw.create(address, amount, token, nonce, v, r, s));
    }
@@ -269,7 +271,7 @@ public class IDexAPI {
    /**
     * Withdraws funds associated with the address. You cannot withdraw funds
     * that are tied up in open orders.
-    * 
+    *
     * @param credentials
     *           Wallet credentials
     * @param contractAddress
@@ -303,7 +305,7 @@ public class IDexAPI {
    /**
     * Withdraws funds associated with the address. You cannot withdraw funds
     * that are tied up in open orders.
-    * 
+    *
     * @param credentials
     *           Wallet credentials
     * @param amount
@@ -344,7 +346,7 @@ public class IDexAPI {
    /**
     * Returns the lowest nonce that you can use from the given address in one of
     * the contract-backed trade functions.
-    * 
+    *
     * @return Future
     */
    public CompletableFuture<String> returnContractAddress() {
@@ -353,20 +355,20 @@ public class IDexAPI {
 
    /**
     * Returns the best-priced open orders for a given market.
-    * 
+    *
     * The response is an object with asks and bids properties, each of which is
     * an array that contains orders sorted by best price (lowest ask first, and
     * highest bid first).
-    * 
+    *
     * By default, the asks and bids lists include 1 order each (ie. the lowest
     * ask and the highest bid). You may request up to 100 orders per segment by
     * including the count parameter. Pagination is not supported.
-    * 
+    *
     * Order objects contain price, amount, total, and orderHash properties, as
     * well as a params property which contains additional data about the order
     * that is useful for verifying the order's authenticity and to fill it. See
     * the trade API call below for details on how to fill orders.
-    * 
+    *
     * @param market
     *           Market pair
     * @param count
@@ -379,12 +381,12 @@ public class IDexAPI {
 
    /**
     * Returns a paginated list of all open orders for a given market or address.
-    * 
+    *
     * The response is similar to the response of returnOrderBook except that
     * orders are sorted chronologically (oldest first) instead of by price. The
     * data format of an order is the same, and there are some additional data
     * points.
-    * 
+    *
     * @param market
     *           Required if address not specified.
     * @param address
@@ -407,12 +409,12 @@ public class IDexAPI {
 
    /**
     * Returns a paginated list of all open orders for a given market or address.
-    * 
+    *
     * The response is similar to the response of returnOrderBook except that
     * orders are sorted chronologically (oldest first) instead of by price. The
     * data format of an order is the same, and there are some additional data
     * points.
-    * 
+    *
     * @param market
     *           Required if address not specified.
     * @param address
@@ -443,12 +445,12 @@ public class IDexAPI {
 
    /**
     * Returns a paginated list of all open orders for a given market or address.
-    * 
+    *
     * The response is similar to the response of returnOrderBook except that
     * orders are sorted chronologically (oldest first) instead of by price. The
     * data format of an order is the same, and there are some additional data
     * points.
-    * 
+    *
     * @param market
     *           Required if address not specified.
     * @param address
@@ -466,7 +468,7 @@ public class IDexAPI {
 
    /**
     * Returns a single order.
-    * 
+    *
     * @param orderHash
     *           OrderHash
     * @return Future
@@ -477,7 +479,7 @@ public class IDexAPI {
 
    /**
     * Returns all trades involving a given order hash.
-    * 
+    *
     * @param orderHash
     *           The order hash to query for associated trades.
     * @return Future
@@ -489,7 +491,7 @@ public class IDexAPI {
    /**
     * Returns a paginated list of all trades for a given market or address,
     * sorted by date.
-    * 
+    *
     * @param market
     *           Required if address not specified. Note market is separated with
     *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
@@ -527,7 +529,7 @@ public class IDexAPI {
    /**
     * Returns Result Producer that paginats throught the results till no more is
     * found! All trades for a given market or address, sorted by date.
-    * 
+    *
     * @param market
     *           Required if address not specified. Note market is separated with
     *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
@@ -560,7 +562,7 @@ public class IDexAPI {
    /**
     * Returns Result Producer that paginats throught the results till no more is
     * found! All trades for a given market or address, sorted by date.
-    * 
+    *
     * @param market
     *           Required if address not specified. Note market is separated with
     *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
@@ -608,7 +610,7 @@ public class IDexAPI {
    /**
     * Returns a paginated list of all trades for a given market or address,
     * sorted by date.
-    * 
+    *
     * @param market
     *           Required if address not specified. Note market is separated with
     *           underscore. E.g ETH_ZCC, WBTC_OMG, TUSD_DAI
@@ -650,7 +652,7 @@ public class IDexAPI {
     * the "start" and "end" optional properties. Withdrawals can be marked as
     * "PENDING" if they are queued for dispatch, "PROCESSING" if the transaction
     * has been dispatched, and "COMPLETE" if the transaction has been mined.
-    * 
+    *
     * @param address
     *           Address of the wallet
     * @param start
@@ -669,7 +671,7 @@ public class IDexAPI {
    /**
     * Returns available balances for an address along with the amount of open
     * orders for each token, indexed by token symbol.
-    * 
+    *
     * @param address
     *           ETH Address
     * @return Future
@@ -681,7 +683,7 @@ public class IDexAPI {
    /**
     * Returns available balances for an address(total deposited minus amount in
     * open orders) indexed by token symbol.
-    * 
+    *
     * @param address
     *           ETH Address
     * @return Future
@@ -693,7 +695,7 @@ public class IDexAPI {
    /**
     * Returns the 24-hour volume for all markets, plus totals for primary
     * currencies.
-    * 
+    *
     * @return Future
     */
    public CompletableFuture<Volume> return24Volume() {
@@ -702,7 +704,7 @@ public class IDexAPI {
 
    /**
     * Returns an object of token data indexed by symbol.
-    * 
+    *
     * @return Future
     */
    public CompletableFuture<Map<String, Currency>> returnCurrencies() {
@@ -711,7 +713,7 @@ public class IDexAPI {
 
    /**
     * Returns all the currency pair availble on the IDEX Market.
-    * 
+    *
     * @return CurrencyPairs
     */
    public CompletableFuture<CurrencyPairs> returnCurrenciesWithPairs() {
@@ -722,11 +724,11 @@ public class IDexAPI {
     * Designed to behave similar to the API call of the same name provided by
     * the Poloniex HTTP API, with the addition of highs and lows. Returns all
     * necessary 24 hr data.
-    * 
+    *
     * Please note: If any field is unavailable due to a lack of trade history or
     * a lack of 24hr data, the field will be set to 'null'. percentChange,
     * baseVolume, and quoteVolume will never be 'null' but may be 0.
-    * 
+    *
     * @param market
     *           Market eg. ETH_SAN, ETH_AURA
     * @return Future

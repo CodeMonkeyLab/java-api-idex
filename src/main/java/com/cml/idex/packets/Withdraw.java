@@ -18,11 +18,11 @@ public class Withdraw implements Req, Parser<Outcome> {
    final BigInteger amount;
    final String     token;
    final long       nonce;
-   final byte       v;
+   final byte[]     v;
    final byte[]     r;
    final byte[]     s;
 
-   public Withdraw(String address, BigInteger amount, String token, long nonce, byte v, byte[] r, byte[] s) {
+   public Withdraw(String address, BigInteger amount, String token, long nonce, byte[] v, byte[] r, byte[] s) {
       super();
       this.address = address;
       this.amount = amount;
@@ -42,8 +42,8 @@ public class Withdraw implements Req, Parser<Outcome> {
    public String getPayload() {
       return new StringBuilder("{\"address\": \"").append(address).append("\", \"amount\": \"").append(amount)
             .append("\", \"token\": \"").append(token).append("\", \"nonce\": \"").append(nonce).append("\", \"v\": ")
-            .append(v).append(", \"r\": \"").append(Numeric.toHexString(r)).append("\", \"s\": \"")
-            .append(Numeric.toHexString(s)).append("\"}").toString();
+            .append(Numeric.toBigInt(v).longValue()).append(", \"r\": \"").append(Numeric.toHexString(r))
+            .append("\", \"s\": \"").append(Numeric.toHexString(s)).append("\"}").toString();
    }
 
    @Override
@@ -54,7 +54,7 @@ public class Withdraw implements Req, Parser<Outcome> {
    }
 
    public static Withdraw create(
-         String address, BigInteger amount, String token, long nonce, byte v, byte[] r, byte[] s
+         String address, BigInteger amount, String token, long nonce, byte[] v, byte[] r, byte[] s
    ) {
       Objects.requireNonNull(address, "address is required!");
       Objects.requireNonNull(amount, "amount is required!");
