@@ -4,7 +4,13 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import com.cml.idex.ErrorCode;
 import com.cml.idex.IDexException;
@@ -20,8 +26,21 @@ public class Utils {
    public static final DateTimeFormatter DT_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
    /**
+    * Produces DateTime from given node and field name. Used by WebSockets.
+    *
+    * @param node
+    *           JsonNode
+    * @param fieldName
+    *           Field Name
+    * @return LocalDateTime
+    */
+   public static final ZonedDateTime parseDateWs(final JsonNode node, final String fieldName) {
+      return ZonedDateTime.parse(node.get(fieldName).asText());
+   }
+
+   /**
     * Produces DateTime from given node and field name
-    * 
+    *
     * @param node
     *           JsonNode
     * @param fieldName
@@ -34,7 +53,7 @@ public class Utils {
 
    /**
     * Checks if the JSON is error and throws exception if error found.
-    * 
+    *
     * @param root
     *           JsonNode
     */
@@ -45,7 +64,7 @@ public class Utils {
 
    /**
     * Returns true if the json is empty.
-    * 
+    *
     * @param json
     *           JSON string to check
     * @return true if JSON string is "emptry"
@@ -57,7 +76,7 @@ public class Utils {
    /**
     * Returns the BigDecimal for the fieldName. Not Required so returns null if
     * field is not found.
-    * 
+    *
     * @param node
     *           JSON Node
     * @param fieldName
@@ -73,7 +92,7 @@ public class Utils {
    /**
     * Returns the BigDecimal for the fieldName. If not found will throw a
     * exception.
-    * 
+    *
     * @param node
     *           JSON Node
     * @param fieldName
@@ -86,7 +105,7 @@ public class Utils {
 
    /**
     * Converts the String to BigDecimal.
-    * 
+    *
     * @param value
     *           String to convert
     * @return BigDecimal value
@@ -146,4 +165,16 @@ public class Utils {
       System.out.println(prettyfyJson(mapper, body));
    }
 
+   /**
+    * Converters a Iterator to a Stream.
+    *
+    * @param <T>
+    *           Stream and Iterator type.
+    * @param itr
+    *           Iterator
+    * @return Stream
+    */
+   public static <T> Stream<T> iteratorToStream(Iterator<T> itr) {
+      return StreamSupport.stream(Spliterators.spliteratorUnknownSize(itr, Spliterator.ORDERED), false);
+   }
 }
