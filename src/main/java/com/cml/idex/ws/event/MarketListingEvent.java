@@ -1,7 +1,11 @@
 package com.cml.idex.ws.event;
 
-import java.io.IOException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.cml.idex.ErrorCode;
+import com.cml.idex.IDexException;
+import com.cml.idex.util.Utils;
 import com.cml.idex.ws.Category.Markets;
 import com.cml.idex.ws.EventType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -9,6 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class MarketListingEvent extends Event<Markets> {
 
+   private static final Logger            log             = LoggerFactory.getLogger(MarketListingEvent.class);
    public static final EventType<Markets> EVENT_TYPE      = EventType.MARKET_LISTING;
    public static final String             EVENT_TYPE_NAME = "market_listing";
 
@@ -60,18 +65,24 @@ public class MarketListingEvent extends Event<Markets> {
       return "MarketListingEvent [action=" + action + ", market=" + market + ", to=" + to + "]";
    }
 
-   public static MarketListingEvent parse(final ObjectMapper mapper, final JsonNode root) throws IOException {
+   public static MarketListingEvent parse(final ObjectMapper mapper, final JsonNode root) {
+      try {
+         final String chain = root.get("chain").asText();
+         final String eid = root.get("eid").asText();
+         final long seqID = root.get("seq").asLong();
 
-      final String chain = root.get("chain").asText();
-      final String eid = root.get("eid").asText();
-      final long seqID = root.get("seq").asLong();
+         final JsonNode payload = mapper.readTree(root.get("payload").asText());
+         final Action action = Action.fromString(payload.get("action").asText());
+         final String market = payload.get("market").asText();
+         final String to = payload.get("to").asText();
 
-      final JsonNode payload = mapper.readTree(root.get("payload").asText());
-      final Action action = Action.fromString(payload.get("action").asText());
-      final String market = payload.get("market").asText();
-      final String to = payload.get("to").asText();
-
-      return new MarketListingEvent(chain, seqID, eid, action, market, to);
+         return new MarketListingEvent(chain, seqID, eid, action, market, to);
+      } catch (Throwable e) {
+         log.error("Error parsing MarketListingEvent!");
+         log.error(Utils.prettyfyJson(mapper, root.toString()));
+         log.error(e.getLocalizedMessage(), e);
+         throw new IDexException(ErrorCode.RESPONSE_PARSE_FAILED, e.getLocalizedMessage(), e);
+      }
    }
 
    public enum Action {

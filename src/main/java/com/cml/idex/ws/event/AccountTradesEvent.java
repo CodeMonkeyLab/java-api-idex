@@ -1,10 +1,15 @@
 package com.cml.idex.ws.event;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.cml.idex.ErrorCode;
+import com.cml.idex.IDexException;
+import com.cml.idex.util.Utils;
 import com.cml.idex.ws.Category.Accounts;
 import com.cml.idex.ws.EventType;
 import com.cml.idex.ws.value.Trade;
@@ -22,6 +27,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  */
 public class AccountTradesEvent extends Event<Accounts> {
+
+   private static final Logger             log             = LoggerFactory.getLogger(AccountTradesEvent.class);
 
    public static final EventType<Accounts> EVENT_TYPE      = EventType.ACCOUNT_TRADES;
    public static final String              EVENT_TYPE_NAME = "account_trades";
@@ -90,23 +97,29 @@ public class AccountTradesEvent extends Event<Accounts> {
             + ", chain=" + chain + ", seqID=" + seqID + ", eventID=" + eventID + "]";
    }
 
-   public static AccountTradesEvent parse(final ObjectMapper mapper, final JsonNode root) throws IOException {
+   public static AccountTradesEvent parse(final ObjectMapper mapper, final JsonNode root) {
+      try {
+         final String chain = root.get("chain").asText();
+         final String eid = root.get("eid").asText();
+         final long seqID = root.get("seq").asLong();
 
-      final String chain = root.get("chain").asText();
-      final String eid = root.get("eid").asText();
-      final long seqID = root.get("seq").asLong();
+         final JsonNode payload = mapper.readTree(root.get("payload").asText());
+         final String account = payload.get("account").asText();
+         final long total = payload.get("total").asLong();
+         final long highestTimestamp = payload.get("highestTimestamp").asLong();
 
-      final JsonNode payload = mapper.readTree(root.get("payload").asText());
-      final String account = payload.get("account").asText();
-      final long total = payload.get("total").asLong();
-      final long highestTimestamp = payload.get("highestTimestamp").asLong();
+         final List<Trade> trades = new LinkedList<>();
+         final Iterator<JsonNode> orderItr = payload.get("trades").elements();
+         while (orderItr.hasNext())
+            trades.add(Trade.parseOrder(orderItr.next()));
 
-      final List<Trade> trades = new LinkedList<>();
-      final Iterator<JsonNode> orderItr = payload.get("trades").elements();
-      while (orderItr.hasNext())
-         trades.add(Trade.parseOrder(orderItr.next()));
-
-      return new AccountTradesEvent(chain, seqID, eid, account, total, highestTimestamp, trades);
+         return new AccountTradesEvent(chain, seqID, eid, account, total, highestTimestamp, trades);
+      } catch (Throwable e) {
+         log.error("Error parsing AccountTradesEvent!");
+         log.error(Utils.prettyfyJson(mapper, root.toString()));
+         log.error(e.getLocalizedMessage(), e);
+         throw new IDexException(ErrorCode.RESPONSE_PARSE_FAILED, e.getLocalizedMessage(), e);
+      }
    }
 
 }

@@ -1,10 +1,15 @@
 package com.cml.idex.ws.event;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.cml.idex.ErrorCode;
+import com.cml.idex.IDexException;
+import com.cml.idex.util.Utils;
 import com.cml.idex.ws.Category.Accounts;
 import com.cml.idex.ws.EventType;
 import com.cml.idex.ws.value.CancelMarket;
@@ -19,6 +24,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *
  */
 public class AccountCancelsEvent extends Event<Accounts> {
+
+   private static final Logger             log             = LoggerFactory.getLogger(AccountCancelsEvent.class);
 
    public static final EventType<Accounts> EVENT_TYPE      = EventType.ACCOUNT_CANCELS;
    public static final String              EVENT_TYPE_NAME = "account_cancels";
@@ -61,21 +68,27 @@ public class AccountCancelsEvent extends Event<Accounts> {
             + eventID + "]";
    }
 
-   public static AccountCancelsEvent parse(final ObjectMapper mapper, final JsonNode root) throws IOException {
+   public static AccountCancelsEvent parse(final ObjectMapper mapper, final JsonNode root) {
+      try {
+         final String chain = root.get("chain").asText();
+         final String eid = root.get("eid").asText();
+         final long seqID = root.get("seq").asLong();
 
-      final String chain = root.get("chain").asText();
-      final String eid = root.get("eid").asText();
-      final long seqID = root.get("seq").asLong();
+         final JsonNode payload = mapper.readTree(root.get("payload").asText());
+         final String account = payload.get("account").asText();
 
-      final JsonNode payload = mapper.readTree(root.get("payload").asText());
-      final String account = payload.get("account").asText();
+         final List<CancelMarket> cancels = new LinkedList<>();
+         final Iterator<JsonNode> orderItr = payload.get("cancels").elements();
+         while (orderItr.hasNext())
+            cancels.add(CancelMarket.parseOrder(orderItr.next()));
 
-      final List<CancelMarket> cancels = new LinkedList<>();
-      final Iterator<JsonNode> orderItr = payload.get("cancels").elements();
-      while (orderItr.hasNext())
-         cancels.add(CancelMarket.parseOrder(orderItr.next()));
-
-      return new AccountCancelsEvent(chain, seqID, eid, account, cancels);
+         return new AccountCancelsEvent(chain, seqID, eid, account, cancels);
+      } catch (Throwable e) {
+         log.error("Error parsing AccountCancelsEvent!");
+         log.error(Utils.prettyfyJson(mapper, root.toString()));
+         log.error(e.getLocalizedMessage(), e);
+         throw new IDexException(ErrorCode.RESPONSE_PARSE_FAILED, e.getLocalizedMessage(), e);
+      }
    }
 
 }

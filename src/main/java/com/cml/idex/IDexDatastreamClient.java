@@ -1,9 +1,18 @@
 package com.cml.idex;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.Dsl;
@@ -15,12 +24,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.cml.idex.util.RandomString;
-import com.cml.idex.util.Utils;
 import com.cml.idex.ws.Category;
+import com.cml.idex.ws.EventListener;
 import com.cml.idex.ws.EventType;
 import com.cml.idex.ws.event.AccountCancelsEvent;
+import com.cml.idex.ws.event.AccountDepositCompleteEvent;
+import com.cml.idex.ws.event.AccountNonceEvent;
 import com.cml.idex.ws.event.AccountOrdersEvent;
 import com.cml.idex.ws.event.AccountTradesEvent;
+import com.cml.idex.ws.event.Event;
 import com.cml.idex.ws.event.MarketCancelsEvent;
 import com.cml.idex.ws.event.MarketListingEvent;
 import com.cml.idex.ws.event.MarketOrdersEvent;
@@ -35,6 +47,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class IDexDatastreamClient {
 
    private static final String       WEBSOCKET_ENDPOINT = "wss://datastream.idex.market";
+   private static final String       API_KEY            = "17paIsICur8sA0OBqG6dH5G1rmrHNMwt4oNk4iX9";
 
    private static final int          MAX_SUB_CHAINS     = 1;
    private static final int          MAX_SUB_ACC        = 25;
@@ -44,43 +57,114 @@ public class IDexDatastreamClient {
 
    private static final Logger       log                = LoggerFactory.getLogger(IDexDatastreamClient.class);
 
+   final String                      apiKey;
    final NettyWebSocket              wsClient;
    final HandshakeListener           listner;
    final ObjectMapper                mapper             = new ObjectMapper();
 
+   final Set<String>                 chainTopics        = new HashSet<>();
+   final Set<String>                 accountTopics      = new HashSet<>();
+   final Set<String>                 marketTopics       = new HashSet<>();
+
    public static void main(String[] args) throws InterruptedException, ExecutionException {
 
       CompletableFuture<IDexDatastreamClient> clientF = create(Dsl.asyncHttpClient());
+      IDexDatastreamClient clientWs = clientF.join();
 
-      clientF.thenAccept(client -> {
-         client.subscribe(Category.SUBSCRIBE_TO_MARKETS, Set.of("ETH_QNT", "ETH_LIT"),
-               Set.of(EventType.MARKET_ORDERS, EventType.MARKET_CANCELS, EventType.MARKET_TRADES));
-      });
+      // clientWs.addEventListner(MarketOrdersEvent.class, event -> {
+      // System.out.println(event);
+      // event.getOrders().forEach(System.out::println);
+      // });
+      //
+      // clientWs.subscribe(Category.SUBSCRIBE_TO_MARKETS, Set.of("ETH_QNT",
+      // "ETH_LIT"),
+      // Set.of(EventType.MARKET_ORDERS, EventType.MARKET_CANCELS,
+      // EventType.MARKET_TRADES));
+
+      clientWs.subscribe(Category.SUBSCRIBE_TO_ACCOUNTS, Set.of("0x529ba941d82cfbbf61d63bd1f38aec1c90788fc8"),
+            EventType.ACCOUNT_NONCE);
 
       while (true)
          Thread.sleep(1000L);
    }
 
-   public static CompletableFuture<IDexDatastreamClient> create(AsyncHttpClient client)
+   /**
+    * Creates a IDEXDatastreamClient with default Endpoint URL and API Key.
+    *
+    * @param client
+    * @return
+    * @throws InterruptedException
+    * @throws ExecutionException
+    */
+   public static CompletableFuture<IDexDatastreamClient> create(final AsyncHttpClient client)
          throws InterruptedException, ExecutionException {
-      final IDexDatastreamClient wsClient = new IDexDatastreamClient(client);
+      return create(client, null, null);
+   }
+
+   public static CompletableFuture<IDexDatastreamClient> create(
+         final AsyncHttpClient client, final String endpoint, final String apiKey
+   ) throws InterruptedException, ExecutionException {
+      final IDexDatastreamClient wsClient = new IDexDatastreamClient(client, endpoint, apiKey);
       return wsClient.listner.authedSid.thenApply(val -> wsClient);
    }
 
-   private IDexDatastreamClient(AsyncHttpClient client) throws InterruptedException, ExecutionException {
-      this.listner = new HandshakeListener(mapper);
-      this.wsClient = client.prepareGet(WEBSOCKET_ENDPOINT)
+   private IDexDatastreamClient(AsyncHttpClient client, final String endpoint, final String apiKey)
+         throws InterruptedException, ExecutionException {
+      this.apiKey = apiKey == null ? API_KEY : apiKey;
+      this.listner = new HandshakeListener(mapper, this.apiKey);
+      this.wsClient = client.prepareGet(endpoint == null ? WEBSOCKET_ENDPOINT : endpoint)
             .execute(new WebSocketUpgradeHandler.Builder().addWebSocketListener(listner).build()).get();
+   }
+
+   @SuppressWarnings("rawtypes")
+   public <T extends Event> void addEventListner(Class<T> eventClass, EventListener<T> listener) {
+      listner.eventListners.add(new EventListnerWrapper(listener, event -> eventClass == event.getClass()));
+   }
+
+   public <T extends Category> void addEventListner(T category, EventListener<Event<T>> listener) {
+      listner.eventListners
+            .add(new EventListnerWrapper(listener, event -> event.getEventType().getCategoryType() == category));
+   }
+
+   public void addEventListner(@SuppressWarnings("rawtypes") EventListener<Event> listener) {
+      listner.eventListners.add(new EventListnerWrapper(listener, event -> true));
+   }
+
+   @SuppressWarnings("rawtypes")
+   public void removeEventListner(EventListener listener) {
+      listner.eventListners.removeAll(
+            listner.eventListners.stream().filter(list -> list.listener == listener).collect(Collectors.toList()));
+   }
+
+   @SuppressWarnings("rawtypes")
+   private class EventListnerWrapper {
+
+      final EventListener    listener;
+      final Predicate<Event> accepts;
+
+      public EventListnerWrapper(EventListener listener, Predicate<Event> accepts) {
+         super();
+         this.listener = listener;
+         this.accepts = accepts;
+      }
+   }
+
+   public <T extends Category> CompletableFuture<Response<T>> subscribe(
+         T category, Set<String> topics, EventType<T>... events
+   ) {
+      Objects.requireNonNull(events, "Events is required!");
+      return subscribe(category, topics, Set.of(events));
    }
 
    public <T extends Category> CompletableFuture<Response<T>> subscribe(
          T category, Set<String> topics, Set<EventType<T>> events
    ) {
+      Objects.requireNonNull(category, "Category is required!");
+      Objects.requireNonNull(events, "Events is required!");
       Request<T> req = new Request<>(getSid(), ridGen.nextString(), category,
             new ActionPayload<>(Action.subscribe, topics, events));
 
       CompletableFuture<Response<T>> future = listner.rspTracker.registerRid(req.getRid());
-      Utils.prettyPrint(mapper, req.toJson());
       wsClient.sendTextFrame(req.toJson());
       return future;
    }
@@ -100,19 +184,23 @@ public class IDexDatastreamClient {
 
    private final static class HandshakeListener implements WebSocketListener {
 
+      final String                    apiKey;
       final ObjectMapper              mapper;
-      final CompletableFuture<String> authedSid  = new CompletableFuture<>();
-      final ResponseTracker           rspTracker = new ResponseTracker();
+      final CompletableFuture<String> authedSid     = new CompletableFuture<>();
+      final ResponseTracker           rspTracker    = new ResponseTracker();
+      final List<EventListnerWrapper> eventListners = new CopyOnWriteArrayList<>();
 
-      public HandshakeListener(ObjectMapper mapper) {
+      public HandshakeListener(final ObjectMapper mapper, final String apiKey) {
          super();
+         this.apiKey = apiKey;
          this.mapper = mapper;
       }
 
       @Override
       public void onOpen(WebSocket websocket) {
          websocket.sendTextFrame(
-               "{\"request\": \"handshake\", \"payload\" : \"{ \\\"version\\\": \\\"1.0.0\\\", \\\"key\\\": \\\"17paIsICur8sA0OBqG6dH5G1rmrHNMwt4oNk4iX9\\\"}\"}");
+               "{\"request\": \"handshake\", \"payload\" : \"{ \\\"version\\\": \\\"1.0.0\\\", \\\"key\\\": \\\""
+                     + apiKey + "\\\"}\"}");
       }
 
       @Override
@@ -136,7 +224,7 @@ public class IDexDatastreamClient {
                // Event Received
                System.out.println("Event Received!");
 
-               processEvent(node.asText(), root, mapper);
+               processEvent(node.asText(), root, mapper, eventListners);
 
                return;
             }
@@ -186,8 +274,32 @@ public class IDexDatastreamClient {
       }
    };
 
-   private static void processEvent(final String eventType, JsonNode root, ObjectMapper mapper) {
+   @SuppressWarnings("unchecked")
+   private static void processEvent(
+         final String eventType, JsonNode root, ObjectMapper mapper, final List<EventListnerWrapper> eventListners
+   ) {
       try {
+         BiFunction<ObjectMapper, JsonNode, Event<?>> eventProcessor = EVENT_PROCESSOR.get(eventType);
+         if (eventProcessor == null) {
+            log.error("Unhandeled Event!! " + eventType);
+            return;
+         }
+
+         {
+            Event<?> event = eventProcessor.apply(mapper, root);
+            for (EventListnerWrapper list : eventListners) {
+               if (list.accepts.test(event)) {
+                  try {
+                     list.listener.onEvent(event);
+                  } catch (Throwable e) {
+                     log.error(e.getLocalizedMessage(), e);
+                  }
+               }
+            }
+            if (!eventListners.isEmpty())
+               return;
+         }
+
          switch (eventType) {
             // Markets
             case MarketOrdersEvent.EVENT_TYPE_NAME: {
@@ -237,6 +349,23 @@ public class IDexDatastreamClient {
          // TODO Parse failure!
          log.error(e.getLocalizedMessage(), e);
       }
+   }
+
+   private static final Map<String, BiFunction<ObjectMapper, JsonNode, Event<?>>> EVENT_PROCESSOR;
+
+   static {
+      EVENT_PROCESSOR = new HashMap<>();
+      // Market
+      EVENT_PROCESSOR.put(MarketOrdersEvent.EVENT_TYPE_NAME, MarketOrdersEvent::parse);
+      EVENT_PROCESSOR.put(MarketCancelsEvent.EVENT_TYPE_NAME, MarketCancelsEvent::parse);
+      EVENT_PROCESSOR.put(MarketTradesEvent.EVENT_TYPE_NAME, MarketTradesEvent::parse);
+      EVENT_PROCESSOR.put(MarketListingEvent.EVENT_TYPE_NAME, MarketListingEvent::parse);
+      // Account
+      EVENT_PROCESSOR.put(AccountNonceEvent.EVENT_TYPE_NAME, AccountNonceEvent::parse);
+      EVENT_PROCESSOR.put(AccountDepositCompleteEvent.EVENT_TYPE_NAME, AccountDepositCompleteEvent::parse);
+      EVENT_PROCESSOR.put(AccountOrdersEvent.EVENT_TYPE_NAME, AccountOrdersEvent::parse);
+      EVENT_PROCESSOR.put(AccountCancelsEvent.EVENT_TYPE_NAME, AccountCancelsEvent::parse);
+      EVENT_PROCESSOR.put(AccountTradesEvent.EVENT_TYPE_NAME, AccountTradesEvent::parse);
    }
 
 }

@@ -1,6 +1,5 @@
 package com.cml.idex;
 
-import java.lang.ref.WeakReference;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,42 +10,43 @@ import com.cml.idex.ws.packets.Response;
 
 class ResponseTracker {
 
-   private final List<WeakReference<CompletableFutureWithKey<?>>> list = new LinkedList<>();
+   private final List<CompletableFutureTimed<?>> list = new LinkedList<>();
 
    ResponseTracker() {
       super();
    }
 
    public synchronized <T extends Category> CompletableFuture<Response<T>> registerRid(final String rid) {
-      CompletableFutureWithKey<T> completableFutureWithKey = new CompletableFutureWithKey<>(rid);
-      list.add(new WeakReference<>(completableFutureWithKey));
-      return completableFutureWithKey;
+      CompletableFutureTimed<T> cfTimed = new CompletableFutureTimed<>(rid);
+      list.add(cfTimed);
+      return cfTimed;
    }
 
    @SuppressWarnings({ "unchecked", "rawtypes" })
    synchronized <T extends Category> CompletableFuture<Response<T>> getAndRemoveFutureForRid(final String rid) {
-      Iterator<WeakReference<CompletableFutureWithKey<?>>> itr = list.iterator();
+      Iterator<CompletableFutureTimed<?>> itr = list.iterator();
       if (itr.hasNext()) {
-         WeakReference<CompletableFutureWithKey<?>> val = itr.next();
-         if (val == null || val.get() == null) {
-            System.out.println("Removing dead Key");
-            itr.remove();
-         } else if (rid.equals(val.get().getRid())) {
+         CompletableFutureTimed<?> val = itr.next();
+         if (rid.equals(val.getRid())) {
             try {
-               return (CompletableFuture) val.get();
+               return (CompletableFuture) val;
             } finally {
                itr.remove();
             }
+         } else if (val.isExpired()) {
+            itr.remove();
          }
       }
       return null;
    }
 
-   static final class CompletableFutureWithKey<T extends Category> extends CompletableFuture<Response<T>> {
+   static final class CompletableFutureTimed<T extends Category> extends CompletableFuture<Response<T>> {
       final String rid;
+      final long   time;
 
-      public CompletableFutureWithKey(String rid) {
+      public CompletableFutureTimed(String rid) {
          super();
+         this.time = System.currentTimeMillis();
          this.rid = rid;
       }
 
@@ -54,5 +54,8 @@ class ResponseTracker {
          return rid;
       }
 
+      public boolean isExpired() {
+         return (System.currentTimeMillis() - time) > 5000L;
+      }
    }
 }

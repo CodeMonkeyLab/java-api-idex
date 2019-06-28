@@ -65,6 +65,17 @@ public class EventType<T extends Category> {
       return cat.getName();
    }
 
+   /**
+    * Returns the EventType for the provided event Type Name.
+    *
+    * @param eventTypeName
+    *           Event Type Name.
+    * @return EventType
+    */
+   public static EventType<?> getEventType(final String eventTypeName) {
+      return EVENTS_MAP.get(eventTypeName);
+   }
+
    public static final EventType<Accounts>                        ACCOUNT_NONCE                   = new EventType<>(
          "account_nonce", Category.SUBSCRIBE_TO_ACCOUNTS);
    public static final EventType<Accounts>                        ACCOUNT_DEPOSIT_COMPLETE        = new EventType<>(
