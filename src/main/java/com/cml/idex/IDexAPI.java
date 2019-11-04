@@ -65,13 +65,29 @@ public class IDexAPI {
    private static final Logger   log             = LoggerFactory.getLogger(IDexAPI.class);
 
    private static final String   HTTP_ENDPOINT   = "https://api.idex.market/";
-   // private static final String WS_ENDPOINT = "wss://v1.idex.market";
    private static final String   CONTENT_TYPE    = "application/json";
 
    private final AsyncHttpClient client          = Dsl.asyncHttpClient();
    private final ObjectMapper    mapper          = new ObjectMapper();
 
    public static final String    DEFAULT_ETH_ADR = "0x0000000000000000000000000000000000000000";
+
+   private final String          apiKey;
+
+   private IDexAPI(final String apiKey) {
+      this.apiKey = apiKey;
+   }
+
+   /**
+    * Creates a new Instance of the IDex API Client.
+    *
+    * @param apiKey
+    *           API Key from IDEX.
+    * @return IDex API Client
+    */
+   public static IDexAPI create(final String apiKey) {
+      return new IDexAPI(apiKey);
+   }
 
    /**
     * Places a limit order on IDEX.
@@ -770,7 +786,7 @@ public class IDexAPI {
          log.debug(Utils.prettyfyJson(mapper, req.getPayload()));
       }
       final Request httpreq = new RequestBuilder(HttpConstants.Methods.POST).setUrl(HTTP_ENDPOINT + req.getEndpoint())
-            .setHeader("Content-Type", CONTENT_TYPE).setBody(req.getPayload()).build();
+            .setHeader("Content-Type", CONTENT_TYPE).setHeader("API-Key", apiKey).setBody(req.getPayload()).build();
       return client.executeRequest(httpreq).toCompletableFuture();
    }
 }
