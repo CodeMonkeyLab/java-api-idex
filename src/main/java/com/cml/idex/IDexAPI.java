@@ -404,12 +404,13 @@ public class IDexAPI {
     * points.
     *
     * @param market
-    *           Required if address not specified.
+    *           Required if address not specified. For example ETH_ZCC.
     * @param address
     *           Required if market not specified. Returns all open orders placed
     *           by the given address.
     * @param count
-    *           Number of records to be returned per request. Default 10
+    *           Number of records to be returned per request. Default 10. Max
+    *           100
     * @param cursor
     *           For pagination. Provide the value returned in the
     *           idex-next-cursor HTTP header to request the next slice (or
@@ -523,7 +524,7 @@ public class IDexAPI {
     *           that will be included.
     * @param end
     *           Unix timestamp (in seconds) marking the time of the newest trade
-    *           that will be included.
+    *           that will be included. Not Required can be null
     * @param sort
     *           Possible values are asc (oldest first) and desc (newest first).
     *           Defaults to desc.
@@ -576,8 +577,10 @@ public class IDexAPI {
    }
 
    /**
-    * Returns Result Producer that paginats throught the results till no more is
-    * found! All trades for a given market or address, sorted by date.
+    * Returns Result Producer that paginats through the results till no more is
+    * found! All trades for a given market or address, sorted by date. Do not
+    * use this to look for new trades after results return less than "count"
+    * amount. Datastream api is much better suited for this.
     *
     * @param market
     *           Required if address not specified. Note market is separated with
@@ -587,7 +590,7 @@ public class IDexAPI {
     *           involve the given address as the maker or taker. Note - When
     *           querying by address, the type property of a trade refers to the
     *           action taken by the user, and not relative to the market. This
-    *           behavior is designed to mirror the "My Trades" section of the
+    *           behaviour is designed to mirror the "My Trades" section of the
     *           IDEX website.
     * @param start
     *           Unix timestamp (in seconds) marking the time of the oldest trade
