@@ -4,7 +4,7 @@
    <modelVersion>4.0.0</modelVersion>
    <groupId>com.codemonkeylab.idex</groupId>
    <artifactId>java-api-idex</artifactId>
-   <version>0.1.0</version>
+   <version>0.3.0-SNAPSHOT</version>
 
    <name>${project.groupId}:${project.artifactId}</name>
    <description>JAVA wrapper of the IDEX market interface</description>
@@ -17,11 +17,11 @@
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-      <org.web3j.version>4.3.1</org.web3j.version>
-      <jackson.version>2.9.9</jackson.version>
+      <org.web3j.version>4.5.5</org.web3j.version>
+      <jackson.version>2.9.10</jackson.version>
 
-      <junit.jupiter.version>5.4.2</junit.jupiter.version>
-      <junit.platform.version>1.4.2</junit.platform.version>
+      <junit.jupiter.version>5.5.2</junit.jupiter.version>
+      <junit.platform.version>1.5.2</junit.platform.version>
    </properties>
 
    <distributionManagement>
@@ -55,14 +55,14 @@
       <dependency>
          <groupId>org.asynchttpclient</groupId>
          <artifactId>async-http-client</artifactId>
-         <version>2.10.0</version>
+         <version>2.10.4</version>
       </dependency>
 
       <!-- https://mvnrepository.com/artifact/org.slf4j/slf4j-api -->
       <dependency>
          <groupId>org.slf4j</groupId>
          <artifactId>slf4j-api</artifactId>
-         <version>1.7.25</version>
+         <version>1.7.29</version>
       </dependency>
 
       <!-- Test Dependencies -->
@@ -111,6 +111,15 @@
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <version>3.8.1</version>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.22.1</version>
+            <configuration>
+               <!-- Workaround for https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+               <useSystemClassLoader>false</useSystemClassLoader>
+            </configuration>
          </plugin>
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>

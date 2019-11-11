@@ -16,14 +16,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * Received when a deposit is received and credited to the account.
- * </p>
+ * <p>
  * At this point the deposited funds are available for trading.
- * </p>
+ * <p>
  * NOTE: Deposits are not submitted using an API Request and are instead
  * initiated directly with the IDEX Contract. This event is generated using our
  * internal block scanner which is actively monitoring transactions on the
  * network.
- * </p>
+ * <p>
  * NOTE: Deposit does not have dispatched and pending events associated with
  * them as they are directly executed on the IDEX Client and are never processed
  * by the IDEX Backend until they are seen in the blockchain.

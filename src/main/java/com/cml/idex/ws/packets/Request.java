@@ -31,7 +31,7 @@ public class Request<T extends Category> {
    /**
     * The request category to perform.
     *
-    * @return
+    * @return Category
     */
    public T getCategory() {
       return category;

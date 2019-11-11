@@ -1,6 +1,7 @@
 package com.cml.idex;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,7 +16,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.asynchttpclient.AsyncHttpClient;
-import org.asynchttpclient.Dsl;
 import org.asynchttpclient.netty.ws.NettyWebSocket;
 import org.asynchttpclient.ws.WebSocket;
 import org.asynchttpclient.ws.WebSocketListener;
@@ -68,7 +68,7 @@ public class IDexDatastreamClient {
 
    public static void main(String[] args) throws InterruptedException, ExecutionException {
 
-      CompletableFuture<IDexDatastreamClient> clientF = create(Dsl.asyncHttpClient());
+      CompletableFuture<IDexDatastreamClient> clientF = null;
       IDexDatastreamClient clientWs = clientF.join();
 
       // clientWs.addEventListner(MarketOrdersEvent.class, event -> {
@@ -81,27 +81,14 @@ public class IDexDatastreamClient {
       // Set.of(EventType.MARKET_ORDERS, EventType.MARKET_CANCELS,
       // EventType.MARKET_TRADES));
 
-      clientWs.subscribe(Category.SUBSCRIBE_TO_ACCOUNTS, Set.of("0x529ba941d82cfbbf61d63bd1f38aec1c90788fc8"),
-            EventType.ACCOUNT_NONCE);
+      clientWs.subscribe(Category.SUBSCRIBE_TO_ACCOUNTS,
+            new HashSet<>(Arrays.asList("0x529ba941d82cfbbf61d63bd1f38aec1c90788fc8")), EventType.ACCOUNT_NONCE);
 
       while (true)
          Thread.sleep(1000L);
    }
 
-   /**
-    * Creates a IDEXDatastreamClient with default Endpoint URL and API Key.
-    *
-    * @param client
-    * @return
-    * @throws InterruptedException
-    * @throws ExecutionException
-    */
-   public static CompletableFuture<IDexDatastreamClient> create(final AsyncHttpClient client)
-         throws InterruptedException, ExecutionException {
-      return create(client, null, null);
-   }
-
-   public static CompletableFuture<IDexDatastreamClient> create(
+   static CompletableFuture<IDexDatastreamClient> create(
          final AsyncHttpClient client, final String endpoint, final String apiKey
    ) throws InterruptedException, ExecutionException {
       final IDexDatastreamClient wsClient = new IDexDatastreamClient(client, endpoint, apiKey);
@@ -117,7 +104,7 @@ public class IDexDatastreamClient {
    }
 
    @SuppressWarnings("rawtypes")
-   public <T extends Event> void addEventListner(Class<T> eventClass, EventListener<T> listener) {
+   public <T extends Event> void addEventListner(Class<T> eventClass, EventListener<? extends T> listener) {
       listner.eventListners.add(new EventListnerWrapper(listener, event -> eventClass == event.getClass()));
    }
 
@@ -126,7 +113,7 @@ public class IDexDatastreamClient {
             .add(new EventListnerWrapper(listener, event -> event.getEventType().getCategoryType() == category));
    }
 
-   public void addEventListner(@SuppressWarnings("rawtypes") EventListener<Event> listener) {
+   public void addEventListner(@SuppressWarnings("rawtypes") EventListener<? extends Event> listener) {
       listner.eventListners.add(new EventListnerWrapper(listener, event -> true));
    }
 
@@ -153,7 +140,7 @@ public class IDexDatastreamClient {
          T category, Set<String> topics, EventType<T>... events
    ) {
       Objects.requireNonNull(events, "Events is required!");
-      return subscribe(category, topics, Set.of(events));
+      return subscribe(category, topics, new HashSet<>(Arrays.asList(events)));
    }
 
    public <T extends Category> CompletableFuture<Response<T>> subscribe(
@@ -272,7 +259,7 @@ public class IDexDatastreamClient {
             authedSid.completeExceptionally(new IllegalStateException("Authentication Failed!"));
          }
       }
-   };
+   }
 
    @SuppressWarnings("unchecked")
    private static void processEvent(

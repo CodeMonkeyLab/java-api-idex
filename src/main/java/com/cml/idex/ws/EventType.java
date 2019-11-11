@@ -41,7 +41,7 @@ public class EventType<T extends Category> {
    /**
     * Returns the Event Type
     *
-    * @return
+    * @return Event Type
     */
    public String getEventType() {
       return eventType;

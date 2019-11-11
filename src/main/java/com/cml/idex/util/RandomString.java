@@ -9,6 +9,8 @@ public class RandomString {
 
    /**
     * Generate a random string.
+    * 
+    * @return Random String
     */
    public String nextString() {
       for (int idx = 0; idx < buf.length; ++idx)
@@ -42,6 +44,11 @@ public class RandomString {
 
    /**
     * Create an alphanumeric string generator.
+    *
+    * @param length
+    *           Length
+    * @param random
+    *           Random Number generator
     */
    public RandomString(int length, Random random) {
       this(length, random, alphanum);
@@ -49,6 +56,9 @@ public class RandomString {
 
    /**
     * Create an alphanumeric strings from a secure generator.
+    *
+    * @param length
+    *           Length
     */
    public RandomString(int length) {
       this(length, new SecureRandom());

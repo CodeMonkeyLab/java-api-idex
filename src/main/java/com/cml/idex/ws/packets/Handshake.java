@@ -11,17 +11,25 @@ public class Handshake {
    }
 
    public RspKey getRspKey() {
-
+      return null;
    }
 
    public HandshakeResult parseRsp(final JsonNode root) {
 
       final String sid = root.get("sid").asText();
       final String rid = root.get("rid").asText();
+      return new HandshakeResult(sid, rid);
    }
 
    public static class HandshakeResult {
       final String sid;
+      final String rid;
+
+      public HandshakeResult(String sid, String rid) {
+         super();
+         this.sid = sid;
+         this.rid = rid;
+      }
 
    }
 }

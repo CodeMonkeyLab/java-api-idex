@@ -127,6 +127,10 @@ public class Utils {
    public static Long toEpochSecond(final LocalDateTime dateTime) {
       if (dateTime == null)
          return null;
+      if (dateTime == LocalDateTime.MIN)
+         return 0L;
+      if (dateTime.getYear() < 1990)
+         return 0L;
       final ZoneId zoneId = ZoneId.systemDefault();
       return dateTime.atZone(zoneId).toEpochSecond();
    }

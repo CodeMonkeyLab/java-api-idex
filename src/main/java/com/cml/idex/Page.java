@@ -5,7 +5,7 @@ import java.util.function.Function;
 
 /**
  * Returns paging results and allows you to fetch next results.
- * 
+ *
  * @author codemonkeylab
  *
  * @param <T>

@@ -63,16 +63,50 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class IDexAPI implements Closeable {
 
-   private static final Logger   log             = LoggerFactory.getLogger(IDexAPI.class);
+   private static final Logger   log                = LoggerFactory.getLogger(IDexAPI.class);
 
-   private static final String   HTTP_ENDPOINT   = "https://api.idex.market/";
-   // private static final String WS_ENDPOINT = "wss://v1.idex.market";
-   private static final String   CONTENT_TYPE    = "application/json";
+   private static final String   HTTP_ENDPOINT      = "https://api.idex.market/";
+   private static final String   WEBSOCKET_ENDPOINT = "wss://datastream.idex.market";
+   private static final String   CONTENT_TYPE       = "application/json";
 
-   private final AsyncHttpClient client          = Dsl.asyncHttpClient();
-   private final ObjectMapper    mapper          = new ObjectMapper();
+   private final AsyncHttpClient client             = Dsl.asyncHttpClient();
+   private final ObjectMapper    mapper             = new ObjectMapper();
 
-   public static final String    DEFAULT_ETH_ADR = "0x0000000000000000000000000000000000000000";
+   public static final String    DEFAULT_ETH_ADR    = "0x0000000000000000000000000000000000000000";
+
+   private final String          apiKey;
+
+   private IDexAPI(final String apiKey) {
+      this.apiKey = apiKey;
+   }
+
+   /**
+    * Creates a new Instance of the IDex API Client.
+    *
+    * @param apiKey
+    *           API Key from IDEX.
+    * @return IDex API Client
+    */
+   public static IDexAPI create(final String apiKey) {
+      return new IDexAPI(apiKey);
+   }
+
+   /**
+    * Creates a IDex Datastream Client that share the same HTTP Client
+    * implementation. If you close the IDexAPI the IDexDatastreamClient will no
+    * longer function.
+    *
+    * @return CompletableFuture returning IDexDatastreamClient
+    * @throws InterruptedException
+    *            Thrown if Thread creating Datastream client is interrupted.
+    * @throws ExecutionException
+    *            Thrown if Thread creating Datastream client throws exception.
+    *            IE something goes wrong with handshake.
+    */
+   public CompletableFuture<IDexDatastreamClient> createDatastreamClient()
+         throws InterruptedException, ExecutionException {
+      return IDexDatastreamClient.create(client, WEBSOCKET_ENDPOINT, apiKey);
+   }
 
    /**
     * Places a limit order on IDEX.
@@ -389,12 +423,13 @@ public class IDexAPI implements Closeable {
     * points.
     *
     * @param market
-    *           Required if address not specified.
+    *           Required if address not specified. For example ETH_ZCC.
     * @param address
     *           Required if market not specified. Returns all open orders placed
     *           by the given address.
     * @param count
-    *           Number of records to be returned per request. Default 10
+    *           Number of records to be returned per request. Default 10. Max
+    *           100
     * @param cursor
     *           For pagination. Provide the value returned in the
     *           idex-next-cursor HTTP header to request the next slice (or
@@ -508,7 +543,7 @@ public class IDexAPI implements Closeable {
     *           that will be included.
     * @param end
     *           Unix timestamp (in seconds) marking the time of the newest trade
-    *           that will be included.
+    *           that will be included. Not Required can be null
     * @param sort
     *           Possible values are asc (oldest first) and desc (newest first).
     *           Defaults to desc.
@@ -561,8 +596,10 @@ public class IDexAPI implements Closeable {
    }
 
    /**
-    * Returns Result Producer that paginats throught the results till no more is
-    * found! All trades for a given market or address, sorted by date.
+    * Returns Result Producer that paginats through the results till no more is
+    * found! All trades for a given market or address, sorted by date. Do not
+    * use this to look for new trades after results return less than "count"
+    * amount. Datastream api is much better suited for this.
     *
     * @param market
     *           Required if address not specified. Note market is separated with
@@ -572,7 +609,7 @@ public class IDexAPI implements Closeable {
     *           involve the given address as the maker or taker. Note - When
     *           querying by address, the type property of a trade refers to the
     *           action taken by the user, and not relative to the market. This
-    *           behavior is designed to mirror the "My Trades" section of the
+    *           behaviour is designed to mirror the "My Trades" section of the
     *           IDEX website.
     * @param start
     *           Unix timestamp (in seconds) marking the time of the oldest trade
@@ -742,6 +779,7 @@ public class IDexAPI implements Closeable {
     * Shutdowns the client and closes all connections.
     *
     * @throws IOException
+    *            if an I/O error occurs
     */
    public void shutdown() throws IOException {
       if (client.isClosed())
@@ -776,7 +814,7 @@ public class IDexAPI implements Closeable {
          log.debug(Utils.prettyfyJson(mapper, req.getPayload()));
       }
       final Request httpreq = new RequestBuilder(HttpConstants.Methods.POST).setUrl(HTTP_ENDPOINT + req.getEndpoint())
-            .setHeader("Content-Type", CONTENT_TYPE).setBody(req.getPayload()).build();
+            .setHeader("Content-Type", CONTENT_TYPE).setHeader("API-Key", apiKey).setBody(req.getPayload()).build();
       return client.executeRequest(httpreq).toCompletableFuture();
    }
 

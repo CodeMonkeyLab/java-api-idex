@@ -26,7 +26,7 @@ import org.web3j.crypto.Credentials;
 import com.cml.idex.IDexAPI;
 
 final Credentials credentials = Credentials.create("WALLET_PRIVATE_KEY");
-final IDexAPI idex = new IDexAPI();
+final IDexAPI idex = IDexAPI.create("API_KEY");
 try {
    // Your code here
 }
