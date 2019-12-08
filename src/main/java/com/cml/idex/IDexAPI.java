@@ -13,6 +13,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig;
 import org.asynchttpclient.Dsl;
 import org.asynchttpclient.Request;
 import org.asynchttpclient.RequestBuilder;
@@ -69,7 +70,8 @@ public class IDexAPI implements Closeable {
    private static final String   WEBSOCKET_ENDPOINT = "wss://datastream.idex.market";
    private static final String   CONTENT_TYPE       = "application/json";
 
-   private final AsyncHttpClient client             = Dsl.asyncHttpClient();
+   private final AsyncHttpClient client             = Dsl
+         .asyncHttpClient(new DefaultAsyncHttpClientConfig.Builder().setKeepAlive(true).build());
    private final ObjectMapper    mapper             = new ObjectMapper();
 
    public static final String    DEFAULT_ETH_ADR    = "0x0000000000000000000000000000000000000000";

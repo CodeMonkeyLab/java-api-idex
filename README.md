@@ -3,6 +3,8 @@
 
 This library uses the [IDEX API](https://docs.idex.market/).
 
+Currently implemented with changes up to [2019-08-05](https://docs.idex.market/#tag/Change-Log)
+
 ## Installation
 
 ### Using Maven
@@ -13,7 +15,7 @@ Add the following dependency to your project's Maven pom.xml:
 <dependency>
 	<groupId>com.codemonkeylab.idex</groupId>
 	<artifactId>java-api-idex</artifactId>
-	<version>0.1.0</version>
+	<version>0.3.0</version>
 </dependency>
 ```
 
@@ -39,14 +41,18 @@ When interacting with ETH trading pair use the IDexAPI.DEFAULT_ETH_ADR as the to
 
 ## Examples
 
-### Balance
+### HTTP API
+
+Mostly used to interact (submit/cancel trade, withdraw/deposit, history, etc) with the Exchange.
+
+#### Balance
 
 Returns available balances for an address(total deposited minus amount in open orders) indexed by token symbol.
 
 ```java
 import com.cml.idex.IDexAPI;
 
-final IDexAPI idex = new IDexAPI();
+final IDexAPI idex = IDexAPI.create("API_KEY");
 try {
    CompletableFuture<Map<String, BigDecimal>> balFuture = idex.returnBalances("ETH_ADR");
    balFuture.get().entrySet()
@@ -58,14 +64,14 @@ try {
 }
 ```
 
-### IDEX Contract Address
+#### IDEX Contract Address
 
 Returns the contract address used for depositing, withdrawing, and posting orders.
 
 ```java
 import com.cml.idex.IDexAPI;
 
-final IDexAPI idex = new IDexAPI();
+final IDexAPI idex = IDexAPI.create("API_KEY");
 try {
    System.out.println("IDEX Contract Address : " + idex.returnContractAddress().get());
 } catch (InterruptedException | ExecutionException e) {
@@ -75,14 +81,14 @@ try {
 }
 ```
 
-### Trade History for Market
+#### Trade History for Market
 
 To get trading history for Token Pair. The Results object returned allows you paginate through the results.
 
 ```java
 import com.cml.idex.IDexAPI;
 
-final IDexAPI idex = new IDexAPI();
+final IDexAPI idex = IDexAPI.create("API_KEY");
 try {
    // Market History for ETH_ZCC
    CompletableFuture<Page<List<TradeHistory>>> tradeHistoryF = idex.returnTradeHistoryPage("ETH_ZCC", null,
@@ -107,3 +113,7 @@ try {
    idex.shutdown();
 }
 ```
+
+### Datastream Realtime API
+
+The IDEX Datastream API allows you to subscribe to realtime events and receive the requested updates as quickly as possible.

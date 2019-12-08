@@ -2,6 +2,7 @@ package com.cml.idex.ws.event;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,7 +111,7 @@ public class AccountDepositCompleteEvent extends Event<Accounts> {
 
    public static AccountDepositCompleteEvent parse(final ObjectMapper mapper, final JsonNode root) {
       try {
-         final String chain = root.get("chain").asText();
+         final String chain = Optional.of(root.get("chain")).map(JsonNode::asText).orElse(null);
          final String eid = root.get("eid").asText();
          final long seqID = root.get("seq").asLong();
 

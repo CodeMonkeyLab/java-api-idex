@@ -57,18 +57,28 @@ public class Trade {
    }
 
    /**
-    * Returns the Order ID.
+    * Returns the Trade ID.
     *
-    * @return Order ID
+    * @return Trade ID
     */
    public long getId() {
       return id;
    }
 
+   /**
+    * Trade Type buy/sell
+    *
+    * @return Trade Type
+    */
    public String getType() {
       return type;
    }
 
+   /**
+    * Trade DateTime
+    *
+    * @return Date and time of the trade
+    */
    public ZonedDateTime getDate() {
       return date;
    }
@@ -82,6 +92,11 @@ public class Trade {
       return timestamp;
    }
 
+   /**
+    * Market of the trade. Example ETH_QNT, ETH_ZCC
+    * 
+    * @return Trade Market
+    */
    public String getMarket() {
       return market;
    }
@@ -102,10 +117,20 @@ public class Trade {
       return total;
    }
 
+   /**
+    * Taker wallet address.
+    *
+    * @return Eth Address
+    */
    public String getTaker() {
       return taker;
    }
 
+   /**
+    * Maker wallet address.
+    *
+    * @return Eth Address
+    */
    public String getMaker() {
       return maker;
    }
@@ -276,7 +301,7 @@ public class Trade {
    }
 
    public static Trade parseOrder(final JsonNode node) {
-      final long id = node.get("id").asLong();
+      final long id = node.get("tid").asLong();
       final String type = node.get("type").asText();
       final ZonedDateTime date = Utils.parseDateWs(node, "date");
       final long timestamp = node.get("timestamp").asLong();

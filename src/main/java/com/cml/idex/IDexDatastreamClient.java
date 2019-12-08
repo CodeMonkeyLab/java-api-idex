@@ -11,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -52,6 +53,7 @@ public class IDexDatastreamClient {
    private static final int          MAX_SUB_CHAINS     = 1;
    private static final int          MAX_SUB_ACC        = 25;
    private static final int          MAX_SUB_MARKET     = 100;
+   private static final int          MIN_RECONNECT_MS   = 30000;
 
    private final static RandomString ridGen             = new RandomString(25);
 
@@ -66,28 +68,6 @@ public class IDexDatastreamClient {
    final Set<String>                 accountTopics      = new HashSet<>();
    final Set<String>                 marketTopics       = new HashSet<>();
 
-   public static void main(String[] args) throws InterruptedException, ExecutionException {
-
-      CompletableFuture<IDexDatastreamClient> clientF = null;
-      IDexDatastreamClient clientWs = clientF.join();
-
-      // clientWs.addEventListner(MarketOrdersEvent.class, event -> {
-      // System.out.println(event);
-      // event.getOrders().forEach(System.out::println);
-      // });
-      //
-      // clientWs.subscribe(Category.SUBSCRIBE_TO_MARKETS, Set.of("ETH_QNT",
-      // "ETH_LIT"),
-      // Set.of(EventType.MARKET_ORDERS, EventType.MARKET_CANCELS,
-      // EventType.MARKET_TRADES));
-
-      clientWs.subscribe(Category.SUBSCRIBE_TO_ACCOUNTS,
-            new HashSet<>(Arrays.asList("0x529ba941d82cfbbf61d63bd1f38aec1c90788fc8")), EventType.ACCOUNT_NONCE);
-
-      while (true)
-         Thread.sleep(1000L);
-   }
-
    static CompletableFuture<IDexDatastreamClient> create(
          final AsyncHttpClient client, final String endpoint, final String apiKey
    ) throws InterruptedException, ExecutionException {
@@ -101,6 +81,10 @@ public class IDexDatastreamClient {
       this.listner = new HandshakeListener(mapper, this.apiKey);
       this.wsClient = client.prepareGet(endpoint == null ? WEBSOCKET_ENDPOINT : endpoint)
             .execute(new WebSocketUpgradeHandler.Builder().addWebSocketListener(listner).build()).get();
+   }
+
+   public NettyWebSocket getWsClient() {
+      return wsClient;
    }
 
    @SuppressWarnings("rawtypes")
@@ -157,6 +141,24 @@ public class IDexDatastreamClient {
    }
 
    /**
+    * Sends a Keep Alive Ping Frame. Not required since the connection is auto
+    * kept alive.
+    */
+   public void sendPing() {
+      wsClient.sendTextFrame("{ \"ping\":\"" + getSid() + "\"}");
+   }
+
+   /**
+    * Closes the Data Stream. Can not use the IDexDatastreamClient again.
+    *
+    * @return a future that will be completed once the close frame will be
+    *         actually written on the wire
+    */
+   public Future<Void> close() {
+      return wsClient.sendCloseFrame();
+   }
+
+   /**
     * Returns the current Session ID.
     *
     * @return Session ID
@@ -169,7 +171,7 @@ public class IDexDatastreamClient {
       }
    }
 
-   private final static class HandshakeListener implements WebSocketListener {
+   private final class HandshakeListener implements WebSocketListener {
 
       final String                    apiKey;
       final ObjectMapper              mapper;
@@ -196,12 +198,22 @@ public class IDexDatastreamClient {
             // TODO Handle this
             authedSid.completeExceptionally(new IllegalStateException("Authentication Failed!"));
          }
-         t.printStackTrace();
+         log.error(t.getLocalizedMessage(), t);
+      }
+
+      @Override
+      public void onPingFrame(byte[] payload) {
+         try {
+            wsClient.sendPongFrame(authedSid.get().getBytes());
+         } catch (InterruptedException | ExecutionException e) {
+            log.error(e.getLocalizedMessage(), e);
+         }
       }
 
       @Override
       public void onTextFrame(String payload, boolean finalFragment, int rsv) {
-         System.out.println(payload + ", FinalFragment=" + finalFragment + ", Rsv=" + rsv);
+         if (log.isDebugEnabled())
+            log.debug("onTextFrame: Payload=" + payload + ", finalFramgment=" + finalFragment + ", rsv=" + rsv);
 
          try {
             JsonNode root = mapper.readTree(payload);
@@ -209,10 +221,7 @@ public class IDexDatastreamClient {
             JsonNode node = root.get("event");
             if (node != null) {
                // Event Received
-               System.out.println("Event Received!");
-
                processEvent(node.asText(), root, mapper, eventListners);
-
                return;
             }
             node = root.get("request");
@@ -226,8 +235,6 @@ public class IDexDatastreamClient {
                   if (node != null) {
                      // TODO : Nuke!
                      final String sid = node.asText();
-
-                     System.out.println("SID : " + sid);
                      authedSid.complete(sid);
                   }
                } else {
@@ -244,18 +251,16 @@ public class IDexDatastreamClient {
 
                return;
             }
-            System.out.println("Unknown Frame received!!!!");
+            log.warn("Unknown Packet Received : Payload=" + payload);
          } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getLocalizedMessage(), e);
          }
       }
 
       @Override
       public void onClose(WebSocket websocket, int code, String reason) {
-         // TODO Auto-generated method stub
-         System.out.println("onClose: code=" + code + ", reason=" + reason);
+         log.info("Connection Closed: code=" + code + ", reason=" + reason);
          if (!authedSid.isDone()) {
-            // TODO Handle this
             authedSid.completeExceptionally(new IllegalStateException("Authentication Failed!"));
          }
       }

@@ -17,7 +17,7 @@
       <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
       <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-      <org.web3j.version>4.5.5</org.web3j.version>
+      <org.web3j.version>4.5.8</org.web3j.version>
       <jackson.version>2.9.10</jackson.version>
 
       <junit.jupiter.version>5.5.2</junit.jupiter.version>
